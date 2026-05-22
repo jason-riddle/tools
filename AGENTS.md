@@ -12,14 +12,14 @@ This is a single Go module (`github.com/jason-riddle/tools`) containing CLI tool
 
 ## Tools
 
-### goober
+### gob
 
-`cmd/goober` — a gob-over-HTTP message transport tool.
+`cmd/gob` — a gob-over-HTTP message transport tool.
 
 Key packages:
-- `internal/goober/protocol` — `Message` struct (the gob envelope)
-- `internal/goober/server` — HTTP server that decodes incoming gob messages and echoes them back
-- `internal/goober/client` — HTTP client that encodes and POSTs gob messages
+- `internal/gob/protocol` — `Message` struct (the gob envelope)
+- `internal/gob/server` — HTTP server that decodes incoming gob messages and echoes them back
+- `internal/gob/client` — HTTP client that encodes and POSTs gob messages
 
 ## Development workflow
 
@@ -40,7 +40,7 @@ go test ./...
 
 **Build a specific binary:**
 ```bash
-go build -o goober ./cmd/goober
+go build -o gob ./cmd/gob
 ```
 
 Always run `go build ./...` and `go vet ./...` after making changes to verify nothing is broken.

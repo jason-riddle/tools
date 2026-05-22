@@ -1,19 +1,19 @@
 # tools
 
-A collection of Go tools. Currently contains `goober`, a gob message transport tool over HTTP.
+A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP.
 
-## goober
+## gob
 
-`goober` sends and receives [gob](https://pkg.go.dev/encoding/gob)-encoded messages over HTTP. It runs as either a server or a client from the same binary.
+`gob` sends and receives [gob](https://pkg.go.dev/encoding/gob)-encoded messages over HTTP. It runs as either a server or a client from the same binary.
 
 ### Directory structure
 
 ```
 cmd/
-  goober/
+  gob/
     main.go               CLI entrypoint (server + client subcommands)
 internal/
-  goober/
+  gob/
     protocol/
       message.go          Message struct (gob envelope)
     server/
@@ -25,7 +25,7 @@ internal/
 ### Build
 
 ```bash
-go build -o goober ./cmd/goober
+go build -o gob ./cmd/gob
 ```
 
 ### Usage
@@ -33,22 +33,22 @@ go build -o goober ./cmd/goober
 **Start the server:**
 
 ```bash
-./goober server --listen :9000
+./gob server --listen :9000
 ```
 
 **Send a message:**
 
 ```bash
-./goober client --addr localhost:9000 --type ping --body "hello world"
-./goober client --addr localhost:9000 --type chat --body "hey server" --id abc123
+./gob client --addr localhost:9000 --type ping --body "hello world"
+./gob client --addr localhost:9000 --type chat --body "hey server" --id abc123
 ```
 
 **Expected output:**
 
 Server terminal:
 ```
-goober: listening on :9000
-goober: recv  version=1 type="ping" id="1" from=127.0.0.1:54321 body="hello world"
+gob: listening on :9000
+gob: recv  version=1 type="ping" id="1" from=127.0.0.1:54321 body="hello world"
 ```
 
 Client terminal:

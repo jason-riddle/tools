@@ -1,7 +1,7 @@
 .PHONY: build build-all fmt vet test clean
 
 build:
-	go build -o goober-app ./cmd/goober
+	go build -o gob-app ./cmd/gob
 
 build-all:
 	go build ./...
@@ -17,4 +17,4 @@ test:
 
 clean:
 	go clean ./...
-	rm -f goober-app uuid-app
+	rm -f gob-app uuid-app
