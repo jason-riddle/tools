@@ -36,6 +36,7 @@
       #   nix build .#grab     — build the grab binary
       #   nix build .#json     — build the json binary
       #   nix build .#nas      — build the nas binary
+      #   nix build .#port     — build the port binary
       #   nix build .#pub      — build the pub binary
       #   nix build .#tick     — build the tick binary
       #   nix build .#uuid     — build the uuid binary
@@ -46,6 +47,7 @@
       #   nix profile add github:jason-riddle/tools#grab   — install grab only
       #   nix profile add github:jason-riddle/tools#json   — install json only
       #   nix profile add github:jason-riddle/tools#nas    — install nas only
+      #   nix profile add github:jason-riddle/tools#port   — install port only
       packages = forAllSystems (pkgs:
         let
           # Build a single CLI tool from cmd/<name>/main.go.
@@ -68,18 +70,19 @@
           grab = mkTool "grab";
           json = mkTool "json";
           nas  = mkTool "nas";
+          port = mkTool "port";
           pub  = mkTool "pub";
           tick = mkTool "tick";
           uuid = mkTool "uuid";
         in {
-          inherit cfup gob grab json nas pub tick uuid;
+          inherit cfup gob grab json nas port pub tick uuid;
 
           # Combined package: symlinks all binaries into a single store path.
           # This is what `nix profile add github:jason-riddle/tools` installs.
           default = pkgs.symlinkJoin {
             name  = "tools"; # stable name; version is already encoded in the store hash
-            paths = [ cfup gob grab json nas pub tick uuid ];
-            meta.description = "Go CLI tools: cfup, gob, grab, json, nas, pub, tick, and uuid";
+            paths = [ cfup gob grab json nas port pub tick uuid ];
+            meta.description = "Go CLI tools: cfup, gob, grab, json, nas, port, pub, tick, and uuid";
           };
         }
       );

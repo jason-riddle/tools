@@ -1,6 +1,6 @@
 # tools
 
-A collection of Go tools. Currently contains `cfup`, an HTTP checker and proxy for services behind Cloudflare Access, `grab`, a single-file downloader, `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
+A collection of Go tools. Currently contains `cfup`, an HTTP checker and proxy for services behind Cloudflare Access, `grab`, a single-file downloader, `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `port`, a Portainer status CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
 
 ## Install with Nix
 
@@ -17,6 +17,7 @@ nix profile add github:jason-riddle/tools#gob
 nix profile add github:jason-riddle/tools#grab
 nix profile add github:jason-riddle/tools#json
 nix profile add github:jason-riddle/tools#nas
+nix profile add github:jason-riddle/tools#port
 nix profile add github:jason-riddle/tools#pub
 nix profile add github:jason-riddle/tools#tick
 nix profile add github:jason-riddle/tools#uuid
@@ -31,6 +32,7 @@ nix build 'path:.#gob'
 nix build 'path:.#grab'
 nix build 'path:.#json'
 nix build 'path:.#nas'
+nix build 'path:.#port'
 nix build 'path:.#pub'
 nix build 'path:.#tick'
 nix build 'path:.#uuid'
@@ -161,6 +163,63 @@ DSM:     DSM 7.3.2-86009 Update 3
 Uptime:  14d 3h 22m
 CPU:     user=4% sys=2%
 Memory:  used=2048 MB / total=4096 MB
+```
+
+## port
+
+`port` talks to the Portainer API and currently provides a `status` subcommand for checking server and endpoint health.
+
+It reads connection details from flags or the environment:
+
+```bash
+export PORTAINER_URL=http://nas:9000
+export PORTAINER_API_KEY=secret
+```
+
+### Build
+
+```bash
+go build -o port ./cmd/port
+```
+
+### Usage
+
+```bash
+./port status
+./port status --url http://nas:9000 --api-key secret
+./port status --json
+```
+
+### Flags
+
+**status subcommand:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--url` | env | Portainer base URL |
+| `--api-key` | env | Portainer API key sent as `X-API-Key` |
+| `--timeout` | `10s` | Per-request HTTP timeout |
+| `--json` | `false` | Emit JSON output |
+
+Example status output:
+
+```text
+Portainer: http://nas:9000
+Version:   2.33.4
+Auth:      ok
+Endpoints: 1
+
+local (id=2, type=docker, status=up)
+  URL:          unix:///var/run/docker.sock
+  Public URL:   http://nas
+  Snapshot:     2026-05-28T07:45:04Z
+  Docker:       24.0.2
+  Containers:   total=12 running=10 stopped=2
+  Health:       healthy=0 unhealthy=0
+  Images:       15
+  Volumes:      111
+  Stacks:       8
+  Services:     0
 ```
 
 ## json
