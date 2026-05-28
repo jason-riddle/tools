@@ -266,64 +266,125 @@ go build -o json ./cmd/json
 
 ### Examples
 
-**Default — pretty-print with sorted keys at all levels:**
+The examples below use a plugin registry file as a running example — a common pattern where a `version` field must stay first and a registry object holds named entries, each with fixed metadata fields:
+
+```json
+{
+  "version": 3,
+  "plugins": {
+    "router": {
+      "source": "org/plugins",
+      "installedAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-05-01T00:00:00Z"
+    },
+    "auth": {
+      "source": "org/plugins",
+      "installedAt": "2026-02-01T00:00:00Z",
+      "updatedAt": "2026-05-01T00:00:00Z"
+    }
+  }
+}
+```
+
+---
+
+**Default — pretty-print with all keys sorted at every level:**
+
+Top-level keys (`plugins`, `version`) and plugin names (`auth`, `router`) and their inner fields all come out alphabetically.
 
 ```
-Input:  {"z":1,"a":2}
+Input:  {"version":3,"plugins":{"router":{"source":"org/plugins","installedAt":"2026-01-01"},"auth":{"source":"org/plugins","installedAt":"2026-02-01"}}}
 Output: {
-          "a": 2,
-          "z": 1
+          "plugins": {
+            "auth": {
+              "installedAt": "2026-02-01",
+              "source": "org/plugins"
+            },
+            "router": {
+              "installedAt": "2026-01-01",
+              "source": "org/plugins"
+            }
+          },
+          "version": 3
         }
 ```
+
+---
+
+**`--sort-keys-min-depth 2 --sort-keys-max-depth 2` — sort only the plugin names; leave everything else in input order:**
+
+`version` stays before `plugins`, plugin names are sorted alphabetically, and each plugin's inner fields keep their original order.
+
+```
+Input:  {"version":3,"plugins":{"router":{"source":"org/plugins","installedAt":"2026-01-01"},"auth":{"source":"org/plugins","installedAt":"2026-02-01"}}}
+Output: {
+          "version": 3,
+          "plugins": {
+            "auth": {
+              "source": "org/plugins",
+              "installedAt": "2026-02-01"
+            },
+            "router": {
+              "source": "org/plugins",
+              "installedAt": "2026-01-01"
+            }
+          }
+        }
+```
+
+---
+
+**`--sort-keys-min-depth 1 --sort-keys-max-depth 1` — sort only top-level keys; nested keys keep input order:**
+
+`plugins` sorts before `version`, but plugin names and their inner fields keep their original order.
+
+```
+Input:  {"version":3,"plugins":{"router":{"source":"org/plugins","installedAt":"2026-01-01"},"auth":{"source":"org/plugins","installedAt":"2026-02-01"}}}
+Output: {
+          "plugins": {
+            "router": {
+              "source": "org/plugins",
+              "installedAt": "2026-01-01"
+            },
+            "auth": {
+              "source": "org/plugins",
+              "installedAt": "2026-02-01"
+            }
+          },
+          "version": 3
+        }
+```
+
+---
 
 **`--sort-arrays` — sort scalar arrays everywhere:**
 
 ```
-Input:  {"tags":["z","a","m"],"ids":[3,1,2]}
+Input:  {"version":3,"plugins":{"auth":{"tags":["z","a","m"]}}}
 Output: {
-          "ids": [1, 2, 3],
-          "tags": ["a", "m", "z"]
-        }
-```
-
-**`--sort-arrays --arrays-depth 1` — sort only the first array level; arrays inside arrays are left alone:**
-
-```
-Input:  {"top":[3,1,2],"matrix":[[5,4],[8,6]]}
-Output: {
-          "matrix": [[5,4],[8,6]],
-          "top": [1, 2, 3]
-        }
-```
-
-**`--sort-keys-min-depth 1 --sort-keys-max-depth 1` — sort only top-level object keys; nested keys keep input order:**
-
-```
-Input:  {"z":{"y":1,"x":2},"b":{"d":3,"c":4}}
-Output: {
-          "b": {
-            "d": 3,
-            "c": 4
+          "plugins": {
+            "auth": {
+              "tags": ["a", "m", "z"]
+            }
           },
-          "z": {
-            "y": 1,
-            "x": 2
-          }
+          "version": 3
         }
 ```
 
-**`--sort-keys-min-depth 2 --sort-keys-max-depth 2` — leave top-level keys in input order, sort only depth-2 keys:**
+---
 
-This is useful for files like a skill lock file where `version` must stay first but the skill names inside `skills` should be alphabetical.
+**`--sort-arrays --arrays-depth 1` — sort only the first array level; arrays nested inside arrays are left alone:**
 
 ```
-Input:  {"version":3,"skills":{"z-skill":{},"a-skill":{}}}
+Input:  {"version":3,"plugins":{"auth":{"tags":["z","a","m"],"matrix":[[5,4],[8,6]]}}}
 Output: {
-          "version": 3,
-          "skills": {
-            "a-skill": {},
-            "z-skill": {}
-          }
+          "plugins": {
+            "auth": {
+              "matrix": [[5,4],[8,6]],
+              "tags": ["a", "m", "z"]
+            }
+          },
+          "version": 3
         }
 ```
 

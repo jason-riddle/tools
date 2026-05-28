@@ -8,6 +8,20 @@ import (
 	"github.com/jason-riddle/tools/internal/json/format"
 )
 
+// pluginRegistry is a generalised form of a lock file pattern: a top-level
+// version scalar plus a registry object whose keys are entry names and whose
+// values are metadata objects with fixed fields. Tests use this shape
+// throughout to stay grounded in a realistic use case.
+//
+//	{
+//	  "version": 3,
+//	  "plugins": {
+//	    "router": {"source": "org/plugins", "installedAt": "2026-01-01"},
+//	    "auth":   {"source": "org/plugins", "installedAt": "2026-02-01"}
+//	  }
+//	}
+const pluginRegistry = `{"version":3,"plugins":{"router":{"source":"org/plugins","installedAt":"2026-01-01"},"auth":{"source":"org/plugins","installedAt":"2026-02-01"}}}`
+
 func mustWrite(t *testing.T, input string, opts format.Options) string {
 	t.Helper()
 	var buf bytes.Buffer
@@ -22,21 +36,22 @@ func mustWrite(t *testing.T, input string, opts format.Options) string {
 // --------------------------------------------------------------------------
 
 func TestWriteSortArraysUnlimitedDepth(t *testing.T) {
-	input := `{"a":[3,1,2]}`
+	// Tags inside a plugin entry should be sorted when arrays-depth is unlimited.
+	input := `{"version":3,"plugins":{"auth":{"tags":["z","a","m"]}}}`
 	out := mustWrite(t, input, format.Options{SortArrays: true, ArraysDepth: -1, Compact: true})
-	if !strings.Contains(out, `"a":[1,2,3]`) {
-		t.Errorf("got %s, want a sorted to [1,2,3]", out)
+	if !strings.Contains(out, `"tags":["a","m","z"]`) {
+		t.Errorf("got %s, want tags sorted to [a,m,z]", out)
 	}
 }
 
 func TestWriteSortArraysDepth1(t *testing.T) {
 	// arrays-depth=1: first array level is sorted; arrays nested inside arrays are not.
-	input := `{"top":[3,1,2],"matrix":[[5,4],[8,6]]}`
+	input := `{"version":3,"plugins":{"auth":{"tags":["z","a","m"],"matrix":[[5,4],[8,6]]}}}`
 	out := mustWrite(t, input, format.Options{SortArrays: true, ArraysDepth: 1, Compact: true})
-	if !strings.Contains(out, `"top":[1,2,3]`) {
-		t.Errorf("got %s, want top sorted to [1,2,3]", out)
+	if !strings.Contains(out, `"tags":["a","m","z"]`) {
+		t.Errorf("got %s, want tags sorted to [a,m,z]", out)
 	}
-	// matrix outer is not scalar so not sorted; inner arrays are at depth 2 — not sorted.
+	// Inner arrays inside matrix are at depth 2 — not sorted with arrays-depth=1.
 	if strings.Contains(out, `[4,5]`) || strings.Contains(out, `[6,8]`) {
 		t.Errorf("got %s, inner arrays should not be sorted with arrays-depth=1", out)
 	}
@@ -44,18 +59,18 @@ func TestWriteSortArraysDepth1(t *testing.T) {
 
 func TestWriteSortArraysDepth0MeansUnlimited(t *testing.T) {
 	// arrays-depth=0 is treated the same as -1 (unlimited).
-	input := `{"a":[3,1,2]}`
+	input := `{"version":3,"plugins":{"auth":{"tags":["z","a","m"]}}}`
 	out := mustWrite(t, input, format.Options{SortArrays: true, ArraysDepth: 0, Compact: true})
-	if !strings.Contains(out, `"a":[1,2,3]`) {
-		t.Errorf("got %s, want a sorted to [1,2,3]", out)
+	if !strings.Contains(out, `"tags":["a","m","z"]`) {
+		t.Errorf("got %s, want tags sorted to [a,m,z]", out)
 	}
 }
 
 func TestWriteSortArraysDisabled(t *testing.T) {
-	input := `{"a":[3,1,2]}`
+	input := `{"version":3,"plugins":{"auth":{"tags":["z","a","m"]}}}`
 	out := mustWrite(t, input, format.Options{SortArrays: false, Compact: true})
-	if !strings.Contains(out, `"a":[3,1,2]`) {
-		t.Errorf("got %s, want a left as [3,1,2]", out)
+	if !strings.Contains(out, `"tags":["z","a","m"]`) {
+		t.Errorf("got %s, want tags left in input order [z,a,m]", out)
 	}
 }
 
@@ -65,99 +80,122 @@ func TestWriteSortArraysDisabled(t *testing.T) {
 
 func TestWriteSortKeysDefault(t *testing.T) {
 	// Default (min=1, max=-1): all object keys sorted at every level.
-	input := `{"z":{"y":1,"x":2},"b":{"d":3,"c":4}}`
-	out := mustWrite(t, input, format.Options{Compact: true})
-	// Top-level: b before z.
-	bIdx := strings.Index(out, `"b"`)
-	zIdx := strings.Index(out, `"z"`)
-	if bIdx < 0 || zIdx < 0 || bIdx >= zIdx {
-		t.Errorf("got %s, want top-level keys sorted (b before z)", out)
-	}
-	// Nested: c before d, x before y.
-	cIdx := strings.Index(out, `"c"`)
-	dIdx := strings.Index(out, `"d"`)
-	if cIdx < 0 || dIdx < 0 || cIdx >= dIdx {
-		t.Errorf("got %s, want nested keys sorted (c before d)", out)
-	}
-}
+	// Top-level: plugins before version.
+	// Depth-2: auth before router.
+	// Depth-3: installedAt before source (within each plugin).
+	out := mustWrite(t, pluginRegistry, format.Options{Compact: true})
 
-func TestWriteSortKeysMaxDepth1(t *testing.T) {
-	// min=1, max=1: sort only top-level keys; nested keys keep input order.
-	input := `{"z":{"y":1,"x":2},"b":{"d":3,"c":4}}`
-	out := mustWrite(t, input, format.Options{SortKeysMinDepth: 1, SortKeysMaxDepth: 1, Compact: true})
+	pluginsIdx := strings.Index(out, `"plugins"`)
+	versionIdx := strings.Index(out, `"version"`)
+	if pluginsIdx < 0 || versionIdx < 0 || pluginsIdx >= versionIdx {
+		t.Errorf("got %s, want plugins before version at top level", out)
+	}
 
-	// Top-level: b before z.
-	bIdx := strings.Index(out, `"b"`)
-	zIdx := strings.Index(out, `"z"`)
-	if bIdx < 0 || zIdx < 0 || bIdx >= zIdx {
-		t.Errorf("got %s, want top-level keys sorted (b before z)", out)
+	authIdx := strings.Index(out, `"auth"`)
+	routerIdx := strings.Index(out, `"router"`)
+	if authIdx < 0 || routerIdx < 0 || authIdx >= routerIdx {
+		t.Errorf("got %s, want auth before router (sorted plugin names)", out)
 	}
-	// Inside "b": d before c (input order).
-	dIdx := strings.Index(out, `"d"`)
-	cIdx := strings.Index(out, `"c"`)
-	if dIdx < 0 || cIdx < 0 || dIdx >= cIdx {
-		t.Errorf("got %s, want nested keys in input order (d before c)", out)
-	}
-	// Inside "z": y before x (input order).
-	yIdx := strings.Index(out, `"y"`)
-	xIdx := strings.Index(out, `"x"`)
-	if yIdx < 0 || xIdx < 0 || yIdx >= xIdx {
-		t.Errorf("got %s, want nested keys in input order (y before x)", out)
+
+	installedIdx := strings.Index(out, `"installedAt"`)
+	sourceIdx := strings.Index(out, `"source"`)
+	if installedIdx < 0 || sourceIdx < 0 || installedIdx >= sourceIdx {
+		t.Errorf("got %s, want installedAt before source inside plugin (sorted)", out)
 	}
 }
 
 func TestWriteSortKeysMinDepth2MaxDepth2(t *testing.T) {
-	// min=2, max=2: leave top-level keys in input order; sort only depth-2 keys.
-	// This is the skill-lock.json use case: preserve version/skills order but
-	// sort skill names inside the "skills" object.
-	input := `{"version":3,"skills":{"z-skill":{},"a-skill":{}}}`
-	out := mustWrite(t, input, format.Options{SortKeysMinDepth: 2, SortKeysMaxDepth: 2, Compact: true})
+	// min=2, max=2: leave top-level keys in input order; sort only plugin names.
+	// This is the lock-file use case: version stays first, plugin names are
+	// alphabetical, each plugin's inner fields keep their original input order.
+	out := mustWrite(t, pluginRegistry, format.Options{SortKeysMinDepth: 2, SortKeysMaxDepth: 2, Compact: true})
 
-	// Top-level: version before skills (input order preserved).
-	vIdx := strings.Index(out, `"version"`)
-	sIdx := strings.Index(out, `"skills"`)
-	if vIdx < 0 || sIdx < 0 || vIdx >= sIdx {
-		t.Errorf("got %s, want version before skills (input order)", out)
+	// Top-level: version before plugins (input order preserved).
+	versionIdx := strings.Index(out, `"version"`)
+	pluginsIdx := strings.Index(out, `"plugins"`)
+	if versionIdx < 0 || pluginsIdx < 0 || versionIdx >= pluginsIdx {
+		t.Errorf("got %s, want version before plugins (input order)", out)
 	}
-	// Inside "skills": a-skill before z-skill (sorted).
-	aIdx := strings.Index(out, `"a-skill"`)
-	zIdx := strings.Index(out, `"z-skill"`)
-	if aIdx < 0 || zIdx < 0 || aIdx >= zIdx {
-		t.Errorf("got %s, want a-skill before z-skill (sorted)", out)
+
+	// Plugin names: auth before router (sorted at depth 2).
+	authIdx := strings.Index(out, `"auth"`)
+	routerIdx := strings.Index(out, `"router"`)
+	if authIdx < 0 || routerIdx < 0 || authIdx >= routerIdx {
+		t.Errorf("got %s, want auth before router (sorted)", out)
+	}
+
+	// Inside each plugin: source before installedAt (input order preserved at depth 3).
+	sourceIdx := strings.Index(out, `"source"`)
+	installedIdx := strings.Index(out, `"installedAt"`)
+	if sourceIdx < 0 || installedIdx < 0 || sourceIdx >= installedIdx {
+		t.Errorf("got %s, want source before installedAt inside plugin (input order)", out)
+	}
+}
+
+func TestWriteSortKeysMaxDepth1(t *testing.T) {
+	// min=1, max=1: sort only top-level keys; everything below keeps input order.
+	out := mustWrite(t, pluginRegistry, format.Options{SortKeysMinDepth: 1, SortKeysMaxDepth: 1, Compact: true})
+
+	// Top-level: plugins before version (sorted).
+	pluginsIdx := strings.Index(out, `"plugins"`)
+	versionIdx := strings.Index(out, `"version"`)
+	if pluginsIdx < 0 || versionIdx < 0 || pluginsIdx >= versionIdx {
+		t.Errorf("got %s, want plugins before version (sorted at depth 1)", out)
+	}
+
+	// Plugin names: router before auth (input order preserved at depth 2).
+	routerIdx := strings.Index(out, `"router"`)
+	authIdx := strings.Index(out, `"auth"`)
+	if routerIdx < 0 || authIdx < 0 || routerIdx >= authIdx {
+		t.Errorf("got %s, want router before auth (input order at depth 2)", out)
 	}
 }
 
 func TestWriteSortKeysMinDepth2Unlimited(t *testing.T) {
 	// min=2, max=-1: top-level keys in input order; sort everything from depth 2 down.
-	input := `{"z":{"d":{"b":1,"a":2},"c":3},"a":{}}`
-	out := mustWrite(t, input, format.Options{SortKeysMinDepth: 2, SortKeysMaxDepth: -1, Compact: true})
+	out := mustWrite(t, pluginRegistry, format.Options{SortKeysMinDepth: 2, SortKeysMaxDepth: -1, Compact: true})
 
-	// Top-level: z before a (input order preserved).
-	zIdx := strings.Index(out, `"z"`)
-	aIdx := strings.Index(out, `"a"`)
-	if zIdx < 0 || aIdx < 0 || zIdx >= aIdx {
-		t.Errorf("got %s, want z before a at top level (input order)", out)
+	// Top-level: version before plugins (input order).
+	versionIdx := strings.Index(out, `"version"`)
+	pluginsIdx := strings.Index(out, `"plugins"`)
+	if versionIdx < 0 || pluginsIdx < 0 || versionIdx >= pluginsIdx {
+		t.Errorf("got %s, want version before plugins (input order at depth 1)", out)
 	}
-	// Inside "z": c before d (sorted at depth 2).
-	cIdx := strings.Index(out, `"c"`)
-	dIdx := strings.Index(out, `"d"`)
-	if cIdx < 0 || dIdx < 0 || cIdx >= dIdx {
-		t.Errorf("got %s, want c before d inside z (sorted at depth 2)", out)
+
+	// Plugin names: auth before router (sorted at depth 2).
+	authIdx := strings.Index(out, `"auth"`)
+	routerIdx := strings.Index(out, `"router"`)
+	if authIdx < 0 || routerIdx < 0 || authIdx >= routerIdx {
+		t.Errorf("got %s, want auth before router (sorted at depth 2)", out)
+	}
+
+	// Inside each plugin: installedAt before source (sorted at depth 3).
+	installedIdx := strings.Index(out, `"installedAt"`)
+	sourceIdx := strings.Index(out, `"source"`)
+	if installedIdx < 0 || sourceIdx < 0 || installedIdx >= sourceIdx {
+		t.Errorf("got %s, want installedAt before source inside plugin (sorted at depth 3)", out)
 	}
 }
 
 func TestWriteSortKeysArrayPassthrough(t *testing.T) {
-	// Arrays do not consume key-sort depth; objects inside arrays count as
-	// one deeper than the array's enclosing object.
-	// min=2, max=2: object inside the array is at depth 2 — its keys are sorted.
-	input := `{"z":[{"b":2,"a":1}]}`
+	// Arrays do not consume key-sort depth. An object inside an array counts
+	// as one deeper than the enclosing object.
+	// With min=2, max=2: the plugin objects inside the "items" array are at
+	// depth 2, so their keys are sorted.
+	input := `{"version":3,"items":[{"source":"org/plugins","installedAt":"2026-01-01"}]}`
 	out := mustWrite(t, input, format.Options{SortKeysMinDepth: 2, SortKeysMaxDepth: 2, Compact: true})
 
-	// Top-level: z in input order (only one key, trivially fine).
-	// Object inside array is at depth 2 — a before b (sorted).
-	aIdx := strings.Index(out, `"a"`)
-	bIdx := strings.Index(out, `"b"`)
-	if aIdx < 0 || bIdx < 0 || aIdx >= bIdx {
-		t.Errorf("got %s, want object-in-array keys sorted (a before b) at depth 2", out)
+	// Top-level: version before items (input order).
+	versionIdx := strings.Index(out, `"version"`)
+	itemsIdx := strings.Index(out, `"items"`)
+	if versionIdx < 0 || itemsIdx < 0 || versionIdx >= itemsIdx {
+		t.Errorf("got %s, want version before items (input order at depth 1)", out)
+	}
+
+	// Object inside array is at depth 2 — installedAt before source (sorted).
+	installedIdx := strings.Index(out, `"installedAt"`)
+	sourceIdx := strings.Index(out, `"source"`)
+	if installedIdx < 0 || sourceIdx < 0 || installedIdx >= sourceIdx {
+		t.Errorf("got %s, want installedAt before source in array object (sorted at depth 2)", out)
 	}
 }
