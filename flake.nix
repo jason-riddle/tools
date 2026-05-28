@@ -29,12 +29,13 @@
         else "dev";
     in {
       # --- packages ---
-      # Individual tools and a combined default that installs both.
+      # Individual tools and a combined default that installs all tools.
       #
       #   nix build .#gob      — build the gob binary
+      #   nix build .#tick     — build the tick binary
       #   nix build .#uuid     — build the uuid binary
-      #   nix build            — build both (default)
-      #   nix profile add github:jason-riddle/tools        — install both
+      #   nix build            — build all tools (default)
+      #   nix profile add github:jason-riddle/tools        — install all tools
       #   nix profile add github:jason-riddle/tools#gob    — install gob only
       packages = forAllSystems (pkgs:
         let
@@ -54,16 +55,17 @@
             };
 
           gob  = mkTool "gob";
+          tick = mkTool "tick";
           uuid = mkTool "uuid";
         in {
-          inherit gob uuid;
+          inherit gob tick uuid;
 
-          # Combined package: symlinks both binaries into a single store path.
+          # Combined package: symlinks all binaries into a single store path.
           # This is what `nix profile add github:jason-riddle/tools` installs.
           default = pkgs.symlinkJoin {
             name  = "tools"; # stable name; version is already encoded in the store hash
-            paths = [ gob uuid ];
-            meta.description = "Go CLI tools: gob and uuid";
+            paths = [ gob tick uuid ];
+            meta.description = "Go CLI tools: gob, tick, and uuid";
           };
         }
       );

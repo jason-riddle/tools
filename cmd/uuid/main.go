@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -35,41 +36,57 @@ Examples:
   uuid version f81d4fae-7dec-11d0-a765-00a0c91e6bf6
 `
 
+var errUsage = errors.New("usage")
+
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("uuid: ")
 
-	if len(os.Args) < 2 {
-		fmt.Fprint(os.Stderr, usage)
+	if err := run(os.Args[1:]); err != nil {
+		if !errors.Is(err, errUsage) {
+			log.Print(err)
+		}
 		os.Exit(1)
 	}
 
-	switch os.Args[1] {
+}
+
+func run(args []string) error {
+	if len(args) < 1 {
+		fmt.Fprint(os.Stderr, usage)
+		return errUsage
+	}
+
+	switch args[0] {
 	case "new":
-		runNew(os.Args[2:])
+		return runNew(args[1:])
 	case "parse":
-		runParse(os.Args[2:])
+		return runParse(args[1:])
 	case "version":
-		runVersion(os.Args[2:])
+		return runVersion(args[1:])
 	case "-h", "--help", "help":
 		fmt.Fprint(os.Stdout, usage)
+		return nil
 	default:
-		fmt.Fprintf(os.Stderr, "uuid: unknown command %q\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "uuid: unknown command %q\n\n", args[0])
 		fmt.Fprint(os.Stderr, usage)
-		os.Exit(1)
+		return errUsage
 	}
 }
 
 // runNew generates a new UUID of the requested version.
-func runNew(args []string) {
-	fs := flag.NewFlagSet("new", flag.ExitOnError)
+func runNew(args []string) error {
+	fs := flag.NewFlagSet("new", flag.ContinueOnError)
 	ver := fs.Int("v", 4, "UUID version to generate: 4 or 7")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: uuid new [flags]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
-		os.Exit(1)
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return errUsage
 	}
 
 	var u uuid.UUID
@@ -79,30 +96,35 @@ func runNew(args []string) {
 	case 7:
 		u = uuid.NewV7()
 	default:
-		log.Fatalf("unsupported version %d; use 4 or 7", *ver)
+		return fmt.Errorf("unsupported version %d; use 4 or 7", *ver)
 	}
 	fmt.Println(u)
+
+	return nil
 }
 
 // runParse parses a UUID string and prints structured details.
-func runParse(args []string) {
-	fs := flag.NewFlagSet("parse", flag.ExitOnError)
+func runParse(args []string) error {
+	fs := flag.NewFlagSet("parse", flag.ContinueOnError)
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: uuid parse <uuid-string>")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
-		os.Exit(1)
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return errUsage
 	}
 
 	if fs.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, "Usage: uuid parse <uuid-string>")
-		os.Exit(1)
+		return errUsage
 	}
 
 	u, err := uuid.Parse(fs.Arg(0))
 	if err != nil {
-		log.Fatalf("%v", err)
+		return err
 	}
 
 	fmt.Printf("uuid:    %s\n", u)
@@ -110,28 +132,35 @@ func runParse(args []string) {
 	fmt.Printf("variant: %s\n", u.Variant())
 	fmt.Printf("nil:     %v\n", u.IsNil())
 	fmt.Printf("max:     %v\n", u.IsMax())
+
+	return nil
 }
 
 // runVersion prints only the version number of a UUID string.
-func runVersion(args []string) {
-	fs := flag.NewFlagSet("version", flag.ExitOnError)
+func runVersion(args []string) error {
+	fs := flag.NewFlagSet("version", flag.ContinueOnError)
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: uuid version <uuid-string>")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
-		os.Exit(1)
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return errUsage
 	}
 
 	if fs.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, "Usage: uuid version <uuid-string>")
-		os.Exit(1)
+		return errUsage
 	}
 
 	u, err := uuid.Parse(fs.Arg(0))
 	if err != nil {
-		log.Fatalf("%v", err)
+		return err
 	}
 
 	fmt.Printf("%d\n", u.Version())
+
+	return nil
 }

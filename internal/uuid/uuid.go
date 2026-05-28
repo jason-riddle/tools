@@ -234,8 +234,11 @@ var v7state struct {
 // Version 7 UUIDs contain a timestamp in the most significant 48 bits,
 // and at least 62 bits of random data.
 //
-// NewV7 always returns UUIDs which sort in increasing order,
-// except when the system clock moves backwards.
+// NewV7 attempts to preserve increasing sort order for UUIDs generated
+// within this process by using a sub-millisecond sequence when the clock
+// does not advance. This improves monotonicity, but it is not a strict
+// guarantee across clock rollback or more than 4096 UUIDs generated within
+// the same millisecond.
 func NewV7() UUID {
 	ms := time.Now().UnixMilli()
 
