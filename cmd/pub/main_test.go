@@ -3,12 +3,13 @@ package main
 import (
 	"errors"
 	"io"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"net/http"
 )
 
 func TestParseOptionsDefaults(t *testing.T) {
@@ -43,40 +44,6 @@ func TestParseOptionsRejectsMultipleUsers(t *testing.T) {
 	_, err := parseOptions([]string{"octocat", "hubot"})
 	if err == nil {
 		t.Fatal("parseOptions() expected an error for multiple usernames")
-	}
-}
-
-func TestFetchKeysReturnsExactBody(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/octocat.keys" {
-			t.Fatalf("request path = %q, want %q", r.URL.Path, "/octocat.keys")
-		}
-		_, _ = io.WriteString(w, "ssh-ed25519 AAAATEST octocat\n")
-	}))
-	defer server.Close()
-
-	body, err := fetchKeys(server.Client(), server.URL, "octocat")
-	if err != nil {
-		t.Fatalf("fetchKeys() unexpected error: %v", err)
-	}
-
-	if got := string(body); got != "ssh-ed25519 AAAATEST octocat\n" {
-		t.Fatalf("fetchKeys() body = %q", got)
-	}
-}
-
-func TestFetchKeysRejectsNon200(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "missing", http.StatusNotFound)
-	}))
-	defer server.Close()
-
-	_, err := fetchKeys(server.Client(), server.URL, "missing")
-	if err == nil {
-		t.Fatal("fetchKeys() expected an error")
-	}
-	if !strings.Contains(err.Error(), "404 Not Found") {
-		t.Fatalf("fetchKeys() error = %q, want status text", err)
 	}
 }
 

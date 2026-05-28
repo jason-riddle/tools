@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"time"
+
+	pubclient "github.com/jason-riddle/tools/internal/pub/client"
 )
 
 const (
@@ -67,8 +68,10 @@ func run(args []string) error {
 		return errUsage
 	}
 
-	client := &http.Client{Timeout: opts.timeout}
-	body, err := fetchKeys(client, githubBaseURL, opts.user)
+	body, err := pubclient.Fetch(opts.user, pubclient.Options{
+		BaseURL: githubBaseURL,
+		Timeout: opts.timeout,
+	})
 	if err != nil {
 		return err
 	}
@@ -103,25 +106,4 @@ func parseOptions(args []string) (options, error) {
 	}
 
 	return opts, nil
-}
-
-func fetchKeys(client *http.Client, baseURL, user string) ([]byte, error) {
-	url := baseURL + "/" + user + ".keys"
-
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("fetch %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("github returned %s for %q", resp.Status, user)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read %s response: %w", url, err)
-	}
-
-	return body, nil
 }
