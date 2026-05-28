@@ -1,3 +1,4 @@
+// Package format renders time values in the output forms supported by tick.
 package format
 
 import (
@@ -39,6 +40,8 @@ func Location(tz string) (*time.Location, error) {
 }
 
 // Format returns t rendered according to opts.
+//
+// Offset is applied before formatting.
 func Format(t time.Time, opts Options) string {
 	t = t.Add(opts.Offset)
 

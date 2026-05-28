@@ -247,7 +247,16 @@ func TestVariant(t *testing.T) {
 	}
 }
 
+// TestNewWithOptions verifies explicit and default version selection.
 func TestNewWithOptions(t *testing.T) {
+	uDefault, err := NewWithOptions(NewOptions{})
+	if err != nil {
+		t.Fatalf("NewWithOptions(default) unexpected error: %v", err)
+	}
+	if got := uDefault.Version(); got != 4 {
+		t.Fatalf("NewWithOptions(default) version = %d, want 4", got)
+	}
+
 	u4, err := NewWithOptions(NewOptions{Version: 4})
 	if err != nil {
 		t.Fatalf("NewWithOptions(v4) unexpected error: %v", err)
@@ -270,6 +279,7 @@ func TestNewWithOptions(t *testing.T) {
 	}
 }
 
+// TestDetails verifies that Details exposes the same inspection fields as the CLI.
 func TestDetails(t *testing.T) {
 	u := MustParse(knownStr)
 	d := u.Details()

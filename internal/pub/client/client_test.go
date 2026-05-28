@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// TestFetchReturnsExactBody verifies that Fetch returns the response body unchanged.
 func TestFetchReturnsExactBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/octocat.keys" {
@@ -28,6 +29,7 @@ func TestFetchReturnsExactBody(t *testing.T) {
 	}
 }
 
+// TestFetchRejectsNon200 verifies that Fetch surfaces non-success HTTP responses.
 func TestFetchRejectsNon200(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing", http.StatusNotFound)

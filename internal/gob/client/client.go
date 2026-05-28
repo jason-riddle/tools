@@ -1,3 +1,4 @@
+// Package client sends gob protocol messages over HTTP.
 package client
 
 import (
@@ -12,13 +13,18 @@ import (
 )
 
 // Options configures a gob client request.
+//
+// Addr is the host:port of the gob server. Timeout is applied to the underlying
+// HTTP client. Message is the gob envelope to send.
 type Options struct {
 	Addr    string
 	Timeout time.Duration
 	Message protocol.Message
 }
 
-// Send gob-encodes opts.Message and POSTs it to opts.Addr/send, then decodes the echoed response.
+// Send gob-encodes opts.Message and POSTs it to http://opts.Addr/send.
+//
+// It expects an HTTP 200 response containing a gob-encoded reply message.
 func Send(opts Options) (protocol.Message, error) {
 	var buf bytes.Buffer
 

@@ -1,3 +1,7 @@
+// Package format provides stable JSON formatting with sorted object keys.
+//
+// Array order is preserved by default. When requested, arrays containing only
+// scalar values are sorted recursively.
 package format
 
 import (
@@ -17,6 +21,8 @@ type Options struct {
 }
 
 // Write reads a single JSON value from r, normalizes it, and writes it to w.
+//
+// It rejects trailing non-whitespace content after the first JSON value.
 func Write(w io.Writer, r io.Reader, opts Options) error {
 	var v any
 	dec := json.NewDecoder(r)

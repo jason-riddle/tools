@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// TestLocationDefaultUTC verifies that an empty TZ value falls back to UTC.
 func TestLocationDefaultUTC(t *testing.T) {
 	loc, err := Location("")
 	if err != nil {
@@ -16,6 +17,7 @@ func TestLocationDefaultUTC(t *testing.T) {
 	}
 }
 
+// TestLocationLoadsLocation verifies that named time zones are loaded through the time package.
 func TestLocationLoadsLocation(t *testing.T) {
 	loc, err := Location("America/New_York")
 	if err != nil {
@@ -26,6 +28,7 @@ func TestLocationLoadsLocation(t *testing.T) {
 	}
 }
 
+// TestFormatDefaultRFC3339 verifies the default output mode.
 func TestFormatDefaultRFC3339(t *testing.T) {
 	ts := time.Date(2026, time.May, 27, 15, 4, 5, 123456789, time.UTC)
 	if got := Format(ts, Options{}); got != "2026-05-27T15:04:05Z" {
@@ -33,6 +36,7 @@ func TestFormatDefaultRFC3339(t *testing.T) {
 	}
 }
 
+// TestFormatNano verifies RFC3339Nano output.
 func TestFormatNano(t *testing.T) {
 	ts := time.Date(2026, time.May, 27, 15, 4, 5, 123456789, time.UTC)
 	if got := Format(ts, Options{Mode: ModeRFC3339Nano}); got != "2026-05-27T15:04:05.123456789Z" {
@@ -40,6 +44,7 @@ func TestFormatNano(t *testing.T) {
 	}
 }
 
+// TestFormatLayout verifies custom layout formatting.
 func TestFormatLayout(t *testing.T) {
 	ts := time.Date(2026, time.May, 27, 15, 4, 5, 0, time.UTC)
 	if got := Format(ts, Options{Mode: ModeLayout, Layout: "2006-01-02 15:04:05 MST"}); got != "2026-05-27 15:04:05 UTC" {
@@ -47,6 +52,7 @@ func TestFormatLayout(t *testing.T) {
 	}
 }
 
+// TestFormatOffset verifies that offsets are applied before formatting.
 func TestFormatOffset(t *testing.T) {
 	ts := time.Date(2026, time.May, 27, 15, 4, 5, 0, time.UTC)
 	if got := Format(ts, Options{Offset: 30 * time.Minute}); got != "2026-05-27T15:34:05Z" {
@@ -54,6 +60,7 @@ func TestFormatOffset(t *testing.T) {
 	}
 }
 
+// TestFormatJSON verifies the structured JSON output mode.
 func TestFormatJSON(t *testing.T) {
 	ts := time.Date(2026, time.May, 27, 15, 4, 5, 123456789, time.UTC)
 	got := Format(ts, Options{Mode: ModeJSON})

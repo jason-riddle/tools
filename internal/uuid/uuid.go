@@ -17,7 +17,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -25,11 +24,13 @@ import (
 )
 
 // NewOptions configures UUID generation.
+//
+// Version 0 uses the package default, which currently matches [NewV4].
 type NewOptions struct {
 	Version int
 }
 
-// Details contains human-readable information about a UUID.
+// Details contains the user-facing fields reported for a UUID.
 type Details struct {
 	UUID    string
 	Version int
@@ -115,6 +116,8 @@ func New() UUID {
 }
 
 // NewWithOptions returns a new UUID for the requested version.
+//
+// Supported versions are 4 and 7. Version 0 selects the package default.
 func NewWithOptions(opts NewOptions) (UUID, error) {
 	switch opts.Version {
 	case 0, 4:
@@ -235,7 +238,7 @@ func (u UUID) Variant() string {
 	}
 }
 
-// Details returns structured details for u.
+// Details returns the user-facing details for u.
 func (u UUID) Details() Details {
 	return Details{
 		UUID:    u.String(),
@@ -312,8 +315,6 @@ func NewV7() UUID {
 
 	return u
 }
-
-var errInvalidUUID = errors.New("uuid: invalid UUID")
 
 // IsNil reports whether u is the nil UUID.
 func (u UUID) IsNil() bool {

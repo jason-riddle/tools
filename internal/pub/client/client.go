@@ -1,3 +1,4 @@
+// Package client fetches GitHub public SSH keys.
 package client
 
 import (
@@ -13,7 +14,7 @@ type Options struct {
 	Timeout time.Duration
 }
 
-// Fetch returns the public SSH keys for user from baseURL.
+// Fetch returns the public SSH keys for user from opts.BaseURL.
 func Fetch(user string, opts Options) ([]byte, error) {
 	httpClient := &http.Client{Timeout: opts.Timeout}
 	url := opts.BaseURL + "/" + user + ".keys"

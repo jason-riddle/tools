@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestWriteSortsObjectKeys verifies that object keys are emitted in lexical order.
 func TestWriteSortsObjectKeys(t *testing.T) {
 	input := `{"z": 1, "a": 2, "m": 3}`
 	var out strings.Builder
@@ -23,6 +24,7 @@ func TestWriteSortsObjectKeys(t *testing.T) {
 	}
 }
 
+// TestWriteNestedObjectKeysSorted verifies that key ordering also applies inside nested objects.
 func TestWriteNestedObjectKeysSorted(t *testing.T) {
 	input := `{"outer": {"z": 1, "a": 2}}`
 	var out strings.Builder
@@ -40,6 +42,7 @@ func TestWriteNestedObjectKeysSorted(t *testing.T) {
 	}
 }
 
+// TestWriteCompact verifies that compact mode removes indentation while preserving stable key order.
 func TestWriteCompact(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"b": 2, "a": 1}`), Options{Compact: true}); err != nil {
@@ -54,6 +57,7 @@ func TestWriteCompact(t *testing.T) {
 	}
 }
 
+// TestWritePreservesArrayOrder verifies that array order is unchanged by default.
 func TestWritePreservesArrayOrder(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"arr": [3, 1, 2]}`), Options{Compact: true}); err != nil {
@@ -64,6 +68,7 @@ func TestWritePreservesArrayOrder(t *testing.T) {
 	}
 }
 
+// TestWriteSortArrays verifies that scalar arrays are sorted when requested.
 func TestWriteSortArrays(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"arr": [3, 1, 2]}`), Options{SortArrays: true, Compact: true}); err != nil {
@@ -74,6 +79,7 @@ func TestWriteSortArrays(t *testing.T) {
 	}
 }
 
+// TestWriteSortArraysNestedScalarArrays verifies recursive sorting of scalar arrays.
 func TestWriteSortArraysNestedScalarArrays(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"outer":{"arr":["b","a"]}}`), Options{SortArrays: true, Compact: true}); err != nil {
@@ -84,6 +90,7 @@ func TestWriteSortArraysNestedScalarArrays(t *testing.T) {
 	}
 }
 
+// TestWriteSortArraysPreservesObjectArrayOrder verifies that arrays containing objects are not reordered.
 func TestWriteSortArraysPreservesObjectArrayOrder(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"arr": [{"b": 2}, {"a": 1}]}`), Options{SortArrays: true, Compact: true}); err != nil {
@@ -100,6 +107,7 @@ func TestWriteSortArraysPreservesObjectArrayOrder(t *testing.T) {
 	}
 }
 
+// TestWriteInvalidJSON verifies that malformed input returns a parse error.
 func TestWriteInvalidJSON(t *testing.T) {
 	err := Write(&strings.Builder{}, strings.NewReader(`{invalid}`), Options{})
 	if err == nil {
@@ -107,6 +115,7 @@ func TestWriteInvalidJSON(t *testing.T) {
 	}
 }
 
+// TestCompareScalars verifies the ordering used when sorting scalar arrays.
 func TestCompareScalars(t *testing.T) {
 	if got := compareScalars(nil, false); got >= 0 {
 		t.Fatalf("compareScalars(nil, false) = %d, want < 0", got)
@@ -119,6 +128,7 @@ func TestCompareScalars(t *testing.T) {
 	}
 }
 
+// TestWriteSortArraysMixedScalarTypes verifies the cross-type ordering for scalar arrays.
 func TestWriteSortArraysMixedScalarTypes(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"arr":["b",null,false,2,"a"]}`), Options{SortArrays: true, Compact: true}); err != nil {
@@ -129,6 +139,7 @@ func TestWriteSortArraysMixedScalarTypes(t *testing.T) {
 	}
 }
 
+// TestWriteSortArraysNumericOrder verifies numeric ordering instead of lexicographic ordering.
 func TestWriteSortArraysNumericOrder(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"arr":[2,10,1]}`), Options{SortArrays: true, Compact: true}); err != nil {
@@ -139,6 +150,7 @@ func TestWriteSortArraysNumericOrder(t *testing.T) {
 	}
 }
 
+// TestWritePreservesLargeInteger verifies that UseNumber preserves large integer values.
 func TestWritePreservesLargeInteger(t *testing.T) {
 	var out strings.Builder
 	if err := Write(&out, strings.NewReader(`{"n":9007199254740993}`), Options{Compact: true}); err != nil {
@@ -149,6 +161,7 @@ func TestWritePreservesLargeInteger(t *testing.T) {
 	}
 }
 
+// TestWriteRejectsTrailingContent verifies that only a single top-level JSON value is accepted.
 func TestWriteRejectsTrailingContent(t *testing.T) {
 	err := Write(&strings.Builder{}, strings.NewReader(`{"a":1} trailing`), Options{})
 	if err == nil {

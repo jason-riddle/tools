@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 )
 
+// TestSendRoundTrip verifies that Send posts a message and decodes the echoed reply.
 func TestSendRoundTrip(t *testing.T) {
 	ts := httptest.NewServer(serverpkg.Handler())
 	defer ts.Close()

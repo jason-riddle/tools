@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestMessageGobRoundTrip verifies that the transport envelope survives gob encode/decode.
 func TestMessageGobRoundTrip(t *testing.T) {
 	want := Message{
 		Version: 1,

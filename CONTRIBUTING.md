@@ -76,6 +76,7 @@ This project intentionally keeps the code straightforward and idiomatic.
 - Keep error strings lowercase and without trailing punctuation.
 - Do not use `panic` for normal error handling; return errors and handle them in `main`.
 - Document exported names and any non-obvious behavior, defaults, or tradeoffs.
+- Write library-grade doc comments for packages and exported APIs. Good doc comments explain caller-visible behavior, accepted inputs, defaults, guarantees, and important limitations; they should do more than restate the symbol name. Prefer comments that stay accurate through refactors by describing behavior and design intent rather than local implementation steps.
 - Favor APIs and types with useful zero values and sensible defaults when practical.
 - For CLI code, use `flag.FlagSet` per subcommand instead of the global `flag` package state, and use `log.SetPrefix` with `log.SetFlags(0)` for clean log output.
 - Flags must come before positional arguments. Do not write custom pre-pass logic to support flags after positional args; rely on standard `flag.FlagSet` parsing behavior instead.

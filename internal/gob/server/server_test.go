@@ -10,6 +10,7 @@ import (
 	"github.com/jason-riddle/tools/internal/gob/protocol"
 )
 
+// TestHandlerEchoesMessage verifies that the HTTP handler decodes and echoes a gob message.
 func TestHandlerEchoesMessage(t *testing.T) {
 	msg := protocol.Message{
 		Version: 1,

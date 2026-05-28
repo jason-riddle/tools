@@ -1,3 +1,4 @@
+// Package server serves gob protocol messages over HTTP.
 package server
 
 import (
@@ -14,7 +15,7 @@ type Options struct {
 	Listen string
 }
 
-// Handler returns an http.Handler that receives gob-encoded Messages on POST /send.
+// Handler returns an HTTP handler that accepts gob-encoded Messages on POST /send.
 func Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /send", handleSend)
@@ -42,7 +43,7 @@ func handleSend(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Run starts the HTTP server on the configured address.
+// Run starts the gob HTTP server on opts.Listen.
 func Run(opts Options) error {
 	log.Printf("listening on %s", opts.Listen)
 	return http.ListenAndServe(opts.Listen, Handler())
