@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -110,13 +109,8 @@ func parseOptions(args []string) (options, string, error) {
 }
 
 func writeJSON(w io.Writer, r io.Reader, opts options) error {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return fmt.Errorf("read input: %w", err)
-	}
-
 	var v any
-	dec := json.NewDecoder(bytes.NewReader(data))
+	dec := json.NewDecoder(r)
 	dec.UseNumber()
 	if err := dec.Decode(&v); err != nil {
 		return fmt.Errorf("parse json: %w", err)
@@ -128,49 +122,41 @@ func writeJSON(w io.Writer, r io.Reader, opts options) error {
 		return fmt.Errorf("parse json: %w", err)
 	}
 
-	normalized := normalize(v, opts.sortArrays)
-
-	var out []byte
-	if opts.compact {
-		out, err = json.Marshal(normalized)
-	} else {
-		out, err = json.MarshalIndent(normalized, "", "  ")
+	if opts.sortArrays {
+		v = normalizeArrays(v)
 	}
-	if err != nil {
+
+	enc := json.NewEncoder(w)
+	if !opts.compact {
+		enc.SetIndent("", "  ")
+	}
+
+	if err := enc.Encode(v); err != nil {
 		return fmt.Errorf("marshal json: %w", err)
 	}
 
-	_, err = fmt.Fprintf(w, "%s\n", out)
-	return err
+	return nil
 }
 
-// normalize recursively sorts object keys and optionally sorts scalar arrays.
-func normalize(v any, sortArrays bool) any {
+// normalizeArrays recursively sorts scalar arrays in place.
+func normalizeArrays(v any) any {
 	switch val := v.(type) {
 	case map[string]any:
-		keys := make([]string, 0, len(val))
-		for k := range val {
-			keys = append(keys, k)
+		for k, elem := range val {
+			val[k] = normalizeArrays(elem)
 		}
-		sort.Strings(keys)
-
-		normalized := make(map[string]any, len(val))
-		for _, k := range keys {
-			normalized[k] = normalize(val[k], sortArrays)
-		}
-		return normalized
+		return val
 
 	case []any:
-		result := make([]any, len(val))
 		for i, elem := range val {
-			result[i] = normalize(elem, sortArrays)
+			val[i] = normalizeArrays(elem)
 		}
-		if sortArrays && isScalarSlice(result) {
-			sort.Slice(result, func(i, j int) bool {
-				return compareScalars(result[i], result[j]) < 0
+		if isScalarSlice(val) {
+			sort.Slice(val, func(i, j int) bool {
+				return compareScalars(val[i], val[j]) < 0
 			})
 		}
-		return result
+		return val
 
 	default:
 		return v

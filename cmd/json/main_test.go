@@ -91,6 +91,19 @@ func TestRunSortArraysFlag(t *testing.T) {
 	}
 }
 
+func TestRunSortArraysNestedScalarArrays(t *testing.T) {
+	input := `{"outer":{"arr":["b","a"]}}`
+	stdout, _, err := captureOutput(t, func() error {
+		return writeJSON(os.Stdout, strings.NewReader(input), options{sortArrays: true, compact: true})
+	})
+	if err != nil {
+		t.Fatalf("writeJSON() unexpected error: %v", err)
+	}
+	if got := strings.TrimSpace(stdout); got != `{"outer":{"arr":["a","b"]}}` {
+		t.Fatalf("writeJSON() output = %q, want %q", got, `{"outer":{"arr":["a","b"]}}`)
+	}
+}
+
 func TestRunSortArraysPreservesObjectArrayOrder(t *testing.T) {
 	// Arrays containing objects must not be reordered.
 	input := `{"arr": [{"b": 2}, {"a": 1}]}`

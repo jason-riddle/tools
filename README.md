@@ -33,7 +33,7 @@ nix build 'path:.#uuid'
 
 ## json
 
-`json` pretty-prints JSON with recursively sorted object keys.
+`json` pretty-prints JSON with stable object key ordering.
 
 By default it preserves array order. Use `--sort-arrays` to sort arrays of scalar values recursively; arrays containing objects or nested arrays keep their original order.
 
