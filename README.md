@@ -1,6 +1,29 @@
 # tools
 
-A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP.
+A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, and `uuid`, a UUID CLI.
+
+## Install with Nix
+
+Install both tools from the flake:
+
+```bash
+nix profile add github:jason-riddle/tools
+```
+
+Install a specific tool:
+
+```bash
+nix profile add github:jason-riddle/tools#gob
+nix profile add github:jason-riddle/tools#uuid
+```
+
+Build locally with Nix:
+
+```bash
+nix build 'path:.#default'
+nix build 'path:.#gob'
+nix build 'path:.#uuid'
+```
 
 ## gob
 
@@ -85,3 +108,22 @@ replied id=1 type=ping body="hello world"
 | `internal/` packages | Cannot be imported by other modules — enforces encapsulation |
 | `[]byte` body, not `any` | Avoids `gob.Register` complexity; transport layer stays clean and versionable |
 | `Version uint8` in envelope | Future-proofs the protocol; decoder can switch on version before acting |
+
+## uuid
+
+`uuid` generates and inspects UUIDs.
+
+### Build
+
+```bash
+go build -o uuid ./cmd/uuid
+```
+
+### Usage
+
+```bash
+./uuid new
+./uuid new -v 7
+./uuid parse f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+./uuid version f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+```

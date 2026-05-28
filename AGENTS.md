@@ -1,62 +1,39 @@
 # AGENTS
 
-Guidelines for AI agents working in this repository.
+Guidance for AI agents working in this repository.
 
-## Repository overview
+## Read First
 
-This is a single Go module (`github.com/jason-riddle/tools`) containing CLI tools under `cmd/` and shared packages under `internal/`.
+Read `CONTRIBUTING.md` before making changes. It contains the shared repository guidance that applies to both human and agent contributors.
 
-- **One `go.mod`** at the repo root. Do not create additional `go.mod` files unless explicitly required for a separate module.
-- **No external dependencies** — stdlib only. Do not add third-party imports unless explicitly requested.
-- All packages under `internal/` are intentionally unexported outside the module.
+## Agent-Specific Expectations
 
-## Tools
+- Keep changes narrow and task-focused.
+- Prefer small edits over broad refactors.
+- Do not add third-party dependencies unless explicitly requested.
+- Do not create additional `go.mod` files unless the task specifically requires a separate module.
+- When changing behavior, update `README.md` or other relevant documentation if needed.
 
-### gob
+## Verification
 
-`cmd/gob` — a gob-over-HTTP message transport tool.
+After making code changes, run:
 
-Key packages:
-- `internal/gob/protocol` — `Message` struct (the gob envelope)
-- `internal/gob/server` — HTTP server that decodes incoming gob messages and echoes them back
-- `internal/gob/client` — HTTP client that encodes and POSTs gob messages
-
-## Development workflow
-
-**Build:**
 ```bash
 go build ./...
-```
-
-**Vet:**
-```bash
 go vet ./...
 ```
 
-**Test:**
+Also run:
+
 ```bash
 go test ./...
 ```
 
-**Build a specific binary:**
-```bash
-go build -o gob ./cmd/gob
-```
+If `flake.nix` changes, verify the affected Nix build targets as well.
 
-Always run `go build ./...` and `go vet ./...` after making changes to verify nothing is broken.
+## Repository Notes
 
-## Code conventions
-
-- Use `flag.FlagSet` per subcommand (not global `flag` package functions) to avoid shared state between subcommands.
-- Log output uses `log.SetPrefix` and `log.SetFlags(0)` for clean prefixed output without timestamps.
-- Error messages from `log.Fatalf` are prefixed automatically by the log package.
-- Prefer `fmt.Errorf("context: %w", err)` for error wrapping.
-- Keep `internal/protocol.Message.Body` as `[]byte` — do not change it to `any` or `interface{}` as that requires `gob.Register` calls.
-
-## Adding a new tool
-
-1. Create `cmd/<toolname>/main.go` with `package main`.
-2. Add shared packages under `internal/<toolname>/` if needed.
-3. Import using the full module path: `github.com/jason-riddle/tools/internal/<toolname>/<pkg>`.
-4. Update `README.md` with usage documentation.
-5. Run `go build ./...` and `go vet ./...` to verify.
+- This repository is a single Go module: `github.com/jason-riddle/tools`.
+- CLI entry points live under `cmd/`.
+- Shared implementation packages live under `internal/`.
+- Internal packages should remain internal to this module.
