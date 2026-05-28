@@ -39,7 +39,8 @@
       #   nix build .#port     — build the port binary
       #   nix build .#pub      — build the pub binary
       #   nix build .#tick     — build the tick binary
-      #   nix build .#uuid     — build the uuid binary
+       #   nix build .#uuid     — build the uuid binary
+       #   nix build .#xml      — build the xml binary
       #   nix build            — build all tools (default)
       #   nix profile add github:jason-riddle/tools        — install all tools
       #   nix profile add github:jason-riddle/tools#cfup   — install cfup only
@@ -74,15 +75,16 @@
           pub  = mkTool "pub";
           tick = mkTool "tick";
           uuid = mkTool "uuid";
+          xml  = mkTool "xml";
         in {
-          inherit cfup gob grab json nas port pub tick uuid;
+          inherit cfup gob grab json nas port pub tick uuid xml;
 
           # Combined package: symlinks all binaries into a single store path.
           # This is what `nix profile add github:jason-riddle/tools` installs.
           default = pkgs.symlinkJoin {
             name  = "tools"; # stable name; version is already encoded in the store hash
-            paths = [ cfup gob grab json nas port pub tick uuid ];
-            meta.description = "Go CLI tools: cfup, gob, grab, json, nas, port, pub, tick, and uuid";
+            paths = [ cfup gob grab json nas port pub tick uuid xml ];
+            meta.description = "Go CLI tools: cfup, gob, grab, json, nas, port, pub, tick, uuid, and xml";
           };
         }
       );

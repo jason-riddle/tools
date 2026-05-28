@@ -1,6 +1,6 @@
 # tools
 
-A collection of Go tools. Currently contains `cfup`, an HTTP checker and proxy for services behind Cloudflare Access, `grab`, a single-file downloader, `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `port`, a Portainer status CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
+A collection of Go tools. Currently contains `cfup`, an HTTP checker and proxy for services behind Cloudflare Access, `grab`, a single-file downloader, `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `port`, a Portainer status CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, `uuid`, a UUID CLI, and `xml`, an XML pretty-printer.
 
 ## Install with Nix
 
@@ -21,6 +21,7 @@ nix profile add github:jason-riddle/tools#port
 nix profile add github:jason-riddle/tools#pub
 nix profile add github:jason-riddle/tools#tick
 nix profile add github:jason-riddle/tools#uuid
+nix profile add github:jason-riddle/tools#xml
 nix profile add github:jason-riddle/tools#cfup
 ```
 
@@ -36,6 +37,7 @@ nix build 'path:.#port'
 nix build 'path:.#pub'
 nix build 'path:.#tick'
 nix build 'path:.#uuid'
+nix build 'path:.#xml'
 nix build 'path:.#cfup'
 ```
 
@@ -555,4 +557,44 @@ go build -o uuid ./cmd/uuid
 ./uuid new -v 7
 ./uuid parse f81d4fae-7dec-11d0-a765-00a0c91e6bf6
 ./uuid version f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+```
+
+## xml
+
+`xml` pretty-prints an XML file with consistent two-space indentation. The XML declaration, comments, processing instructions, and CDATA sections are preserved.
+
+### Build
+
+```bash
+go build -o xml ./cmd/xml
+```
+
+### Usage
+
+```bash
+./xml < file.xml
+./xml file.xml
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `-h`, `-help`, `--help` | Print usage and examples |
+
+### Example
+
+Input:
+
+```xml
+<?xml version="1.0"?><root><child attr="val">text</child></root>
+```
+
+Output:
+
+```xml
+<?xml version="1.0"?>
+<root>
+  <child attr="val">text</child>
+</root>
 ```
