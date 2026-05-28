@@ -73,31 +73,31 @@ func run(args []string) error {
 	}
 }
 
+func wantsHelp(args []string) bool {
+	for _, arg := range args {
+		switch arg {
+		case "-h", "-help", "--help":
+			return true
+		}
+	}
+
+	return false
+}
+
 // runNew generates a new UUID of the requested version.
 func runNew(args []string) error {
+	if wantsHelp(args) {
+		printNewUsage(os.Stdout)
+		return nil
+	}
+
 	fs := flag.NewFlagSet("new", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	ver := fs.Int("v", 4, "UUID version to generate: 4 or 7")
 	fs.Usage = func() {
-		fmt.Fprint(os.Stderr, `uuid new - generate a new UUID
-
-Usage:
-  uuid new [flags]
-
-Flags:
-  -v int
-        UUID version to generate: 4 or 7 (default 4)
-
-Examples:
-  uuid new
-  uuid new -v 7
-`)
+		printNewUsage(os.Stderr)
 	}
 	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fs.Usage()
-			return nil
-		}
 		fmt.Fprintf(os.Stderr, "uuid new: %v\n\n", err)
 		fs.Usage()
 		return errUsage
@@ -124,26 +124,17 @@ Examples:
 
 // runParse parses a UUID string and prints structured details.
 func runParse(args []string) error {
+	if wantsHelp(args) {
+		printParseUsage(os.Stdout)
+		return nil
+	}
+
 	fs := flag.NewFlagSet("parse", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.Usage = func() {
-		fmt.Fprint(os.Stderr, `uuid parse - parse a UUID string and print details
-
-Usage:
-  uuid parse <uuid-string>
-
-Arguments:
-  uuid-string  UUID to parse
-
-Examples:
-  uuid parse f81d4fae-7dec-11d0-a765-00a0c91e6bf6
-`)
+		printParseUsage(os.Stderr)
 	}
 	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fs.Usage()
-			return nil
-		}
 		fmt.Fprintf(os.Stderr, "uuid parse: %v\n\n", err)
 		fs.Usage()
 		return errUsage
@@ -172,26 +163,17 @@ Examples:
 
 // runVersion prints only the version number of a UUID string.
 func runVersion(args []string) error {
+	if wantsHelp(args) {
+		printVersionUsage(os.Stdout)
+		return nil
+	}
+
 	fs := flag.NewFlagSet("version", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.Usage = func() {
-		fmt.Fprint(os.Stderr, `uuid version - print the version number of a UUID string
-
-Usage:
-  uuid version <uuid-string>
-
-Arguments:
-  uuid-string  UUID to inspect
-
-Examples:
-  uuid version f81d4fae-7dec-11d0-a765-00a0c91e6bf6
-`)
+		printVersionUsage(os.Stderr)
 	}
 	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fs.Usage()
-			return nil
-		}
 		fmt.Fprintf(os.Stderr, "uuid version: %v\n\n", err)
 		fs.Usage()
 		return errUsage
@@ -212,4 +194,48 @@ Examples:
 	fmt.Printf("%d\n", u.Version())
 
 	return nil
+}
+
+func printNewUsage(w io.Writer) {
+	fmt.Fprint(w, `uuid new - generate a new UUID
+
+Usage:
+  uuid new [flags]
+
+Flags:
+  -v int
+        UUID version to generate: 4 or 7 (default 4)
+
+Examples:
+  uuid new
+  uuid new -v 7
+`)
+}
+
+func printParseUsage(w io.Writer) {
+	fmt.Fprint(w, `uuid parse - parse a UUID string and print details
+
+Usage:
+  uuid parse <uuid-string>
+
+Arguments:
+  uuid-string  UUID to parse
+
+Examples:
+  uuid parse f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+`)
+}
+
+func printVersionUsage(w io.Writer) {
+	fmt.Fprint(w, `uuid version - print the version number of a UUID string
+
+Usage:
+  uuid version <uuid-string>
+
+Arguments:
+  uuid-string  UUID to inspect
+
+Examples:
+  uuid version f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+`)
 }

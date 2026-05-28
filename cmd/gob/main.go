@@ -71,31 +71,32 @@ func run(args []string) error {
 	}
 }
 
+func wantsHelp(args []string) bool {
+	for _, arg := range args {
+		switch arg {
+		case "-h", "-help", "--help":
+			return true
+		}
+	}
+
+	return false
+}
+
 // runServer parses server subcommand flags and starts the HTTP server.
 func runServer(args []string) error {
+	if wantsHelp(args) {
+		printServerUsage(os.Stdout)
+		return nil
+	}
+
 	fs := flag.NewFlagSet("server", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	listen := fs.String("listen", ":9000", "address to listen on")
 	fs.Usage = func() {
-		fmt.Fprint(os.Stderr, `gob server - start the gob HTTP server
-
-Usage:
-  gob server [flags]
-
-Flags:
-  -listen string
-        Address to listen on (default ":9000")
-
-Examples:
-  gob server -listen :9000
-`)
+		printServerUsage(os.Stderr)
 	}
 
 	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fs.Usage()
-			return nil
-		}
 		fmt.Fprintf(os.Stderr, "gob server: %v\n\n", err)
 		fs.Usage()
 		return errUsage
@@ -115,6 +116,11 @@ Examples:
 
 // runClient parses client subcommand flags, builds a Message, and sends it.
 func runClient(args []string) error {
+	if wantsHelp(args) {
+		printClientUsage(os.Stdout)
+		return nil
+	}
+
 	fs := flag.NewFlagSet("client", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	addr := fs.String("addr", "localhost:9000", "server address")
@@ -123,33 +129,10 @@ func runClient(args []string) error {
 	body := fs.String("body", "hello", "message body")
 	timeout := fs.Duration("timeout", 5*time.Second, "connection timeout")
 	fs.Usage = func() {
-		fmt.Fprint(os.Stderr, `gob client - send a gob message to the server
-
-Usage:
-  gob client [flags]
-
-Flags:
-  -addr string
-        Server address (default "localhost:9000")
-  -id string
-        Message ID (default "1")
-  -type string
-        Message type (default "ping")
-  -body string
-        Message body (default "hello")
-  -timeout duration
-        Connection timeout (default 5s)
-
-Examples:
-  gob client -addr localhost:9000 -type ping -body "hello world"
-`)
+		printClientUsage(os.Stderr)
 	}
 
 	if err := fs.Parse(args); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fs.Usage()
-			return nil
-		}
 		fmt.Fprintf(os.Stderr, "gob client: %v\n\n", err)
 		fs.Usage()
 		return errUsage
@@ -176,4 +159,42 @@ Examples:
 	fmt.Printf("replied id=%s type=%s body=%q\n", reply.ID, reply.Type, reply.Body)
 
 	return nil
+}
+
+func printServerUsage(w io.Writer) {
+	fmt.Fprint(w, `gob server - start the gob HTTP server
+
+Usage:
+  gob server [flags]
+
+Flags:
+  -listen string
+        Address to listen on (default ":9000")
+
+Examples:
+  gob server -listen :9000
+`)
+}
+
+func printClientUsage(w io.Writer) {
+	fmt.Fprint(w, `gob client - send a gob message to the server
+
+Usage:
+  gob client [flags]
+
+Flags:
+  -addr string
+        Server address (default "localhost:9000")
+  -id string
+        Message ID (default "1")
+  -type string
+        Message type (default "ping")
+  -body string
+        Message body (default "hello")
+  -timeout duration
+        Connection timeout (default 5s)
+
+Examples:
+  gob client -addr localhost:9000 -type ping -body "hello world"
+`)
 }

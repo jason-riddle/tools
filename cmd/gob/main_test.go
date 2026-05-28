@@ -63,14 +63,17 @@ func TestRunHelpPrintsUsageToStdout(t *testing.T) {
 }
 
 func TestRunClientHelpPrintsSubcommandUsage(t *testing.T) {
-	_, stderr, err := captureOutput(t, func() error {
+	stdout, stderr, err := captureOutput(t, func() error {
 		return runClient([]string{"-h"})
 	})
 	if err != nil {
 		t.Fatalf("runClient() unexpected error: %v", err)
 	}
-	if !strings.Contains(stderr, "gob client - send a gob message to the server") {
-		t.Fatalf("runClient() stderr = %q", stderr)
+	if stderr != "" {
+		t.Fatalf("runClient() stderr = %q, want empty", stderr)
+	}
+	if !strings.Contains(stdout, "gob client - send a gob message to the server") {
+		t.Fatalf("runClient() stdout = %q", stdout)
 	}
 }
 

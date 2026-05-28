@@ -74,6 +74,21 @@ func TestRunParseUsageErrorIncludesMessageAndUsage(t *testing.T) {
 	}
 }
 
+func TestRunParseHelpPrintsUsageToStdout(t *testing.T) {
+	stdout, stderr, err := captureOutput(t, func() error {
+		return runParse([]string{"-h"})
+	})
+	if err != nil {
+		t.Fatalf("runParse() unexpected error: %v", err)
+	}
+	if stderr != "" {
+		t.Fatalf("runParse() stderr = %q, want empty", stderr)
+	}
+	if !strings.Contains(stdout, "uuid parse - parse a UUID string and print details") {
+		t.Fatalf("runParse() stdout = %q", stdout)
+	}
+}
+
 func captureOutput(t *testing.T, fn func() error) (string, string, error) {
 	t.Helper()
 
