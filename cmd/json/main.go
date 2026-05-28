@@ -23,6 +23,9 @@ Flags:
   --sort-arrays
         Sort arrays of scalar values recursively; arrays containing objects
         or nested arrays keep their original order.
+  --depth N
+        Limit recursive array sorting to N levels deep. Requires --sort-arrays.
+        -1 (default) means unlimited; 1 sorts only the top-level array.
   --compact
         Emit compact JSON instead of pretty-printed output.
   -h, -help, --help
@@ -33,6 +36,7 @@ Examples:
   json file.json
   json --compact file.json
   json --sort-arrays file.json
+  json --sort-arrays --depth 1 file.json
 `
 
 var errUsage = errors.New("usage")
@@ -40,6 +44,7 @@ var errUsage = errors.New("usage")
 type options struct {
 	sortArrays bool
 	compact    bool
+	depth      int
 }
 
 func main() {
@@ -79,6 +84,7 @@ func run(args []string) error {
 	return jsonformat.Write(os.Stdout, r, jsonformat.Options{
 		SortArrays: opts.sortArrays,
 		Compact:    opts.compact,
+		Depth:      opts.depth,
 	})
 }
 
@@ -94,6 +100,7 @@ func parseOptions(args []string) (options, string, error) {
 	fs.Usage = func() { fmt.Fprint(os.Stdout, usage) }
 	fs.BoolVar(&opts.sortArrays, "sort-arrays", false, "sort arrays of scalar values recursively")
 	fs.BoolVar(&opts.compact, "compact", false, "emit compact JSON instead of pretty-printed output")
+	fs.IntVar(&opts.depth, "depth", -1, "limit array sorting recursion depth (-1 means unlimited)")
 
 	if err := fs.Parse(args); err != nil {
 		return options{}, "", err

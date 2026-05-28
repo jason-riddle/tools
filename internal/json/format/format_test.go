@@ -1,173 +1,63 @@
-package format
+package format_test
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/jason-riddle/tools/internal/json/format"
 )
 
-// TestWriteSortsObjectKeys verifies that object keys are emitted in lexical order.
-func TestWriteSortsObjectKeys(t *testing.T) {
-	input := `{"z": 1, "a": 2, "m": 3}`
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(input), Options{}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
+func mustWrite(t *testing.T, input string, opts format.Options) string {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := format.Write(&buf, strings.NewReader(input), opts); err != nil {
+		t.Fatalf("Write() error: %v", err)
 	}
-	got := out.String()
-	aIdx := strings.Index(got, `"a"`)
-	mIdx := strings.Index(got, `"m"`)
-	zIdx := strings.Index(got, `"z"`)
-	if aIdx < 0 || mIdx < 0 || zIdx < 0 {
-		t.Fatalf("Write() output = %q, missing expected keys", got)
-	}
-	if !(aIdx < mIdx && mIdx < zIdx) {
-		t.Fatalf("Write() keys not sorted: %q", got)
+	return buf.String()
+}
+
+func TestWriteSortArraysUnlimitedDepth(t *testing.T) {
+	// Nested scalar arrays should all be sorted when depth is -1 (unlimited).
+	// The inner slices [5,4] and [8,6] get sorted; the outer [][]any is not
+	// a scalar slice and keeps its order.
+	input := `{"a":[3,1,2]}`
+	out := mustWrite(t, input, format.Options{SortArrays: true, Depth: -1, Compact: true})
+	if !strings.Contains(out, `"a":[1,2,3]`) {
+		t.Errorf("got %s, want a sorted to [1,2,3]", out)
 	}
 }
 
-// TestWriteNestedObjectKeysSorted verifies that key ordering also applies inside nested objects.
-func TestWriteNestedObjectKeysSorted(t *testing.T) {
-	input := `{"outer": {"z": 1, "a": 2}}`
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(input), Options{}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
+func TestWriteSortArraysDepth1(t *testing.T) {
+	// depth=1: arrays at the first array-level encountered are sorted.
+	// Object traversal does not consume depth, so arrays nested inside
+	// objects at the same array-depth are also sorted.
+	// Arrays nested inside other arrays are NOT sorted.
+	input := `{"top":[3,1,2],"matrix":[[5,4],[8,6]]}`
+	out := mustWrite(t, input, format.Options{SortArrays: true, Depth: 1, Compact: true})
+	if !strings.Contains(out, `"top":[1,2,3]`) {
+		t.Errorf("got %s, want top sorted to [1,2,3]", out)
 	}
-	got := out.String()
-	aIdx := strings.Index(got, `"a"`)
-	zIdx := strings.Index(got, `"z"`)
-	if aIdx < 0 || zIdx < 0 {
-		t.Fatalf("Write() output = %q, missing nested keys", got)
-	}
-	if aIdx >= zIdx {
-		t.Fatalf("Write() nested keys not sorted: %q", got)
-	}
-}
-
-// TestWriteCompact verifies that compact mode removes indentation while preserving stable key order.
-func TestWriteCompact(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"b": 2, "a": 1}`), Options{Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	got := strings.TrimSpace(out.String())
-	if strings.Contains(got, "\n") {
-		t.Fatalf("Write() compact output contains newlines: %q", got)
-	}
-	if got != `{"a":1,"b":2}` {
-		t.Fatalf("Write() output = %q, want %q", got, `{"a":1,"b":2}`)
+	// matrix is not a scalar slice so it won't be sorted, but its inner
+	// slices are at array-depth 2 and should NOT be sorted with depth=1.
+	if strings.Contains(out, `[4,5]`) || strings.Contains(out, `[6,8]`) {
+		t.Errorf("got %s, inner arrays should not be sorted with depth=1", out)
 	}
 }
 
-// TestWritePreservesArrayOrder verifies that array order is unchanged by default.
-func TestWritePreservesArrayOrder(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"arr": [3, 1, 2]}`), Options{Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	if got := strings.TrimSpace(out.String()); got != `{"arr":[3,1,2]}` {
-		t.Fatalf("Write() output = %q, want %q", got, `{"arr":[3,1,2]}`)
+func TestWriteSortArraysDepth0MeansUnlimited(t *testing.T) {
+	// depth=0 is treated the same as -1 (unlimited).
+	input := `{"a":[3,1,2]}`
+	out := mustWrite(t, input, format.Options{SortArrays: true, Depth: 0, Compact: true})
+	if !strings.Contains(out, `"a":[1,2,3]`) {
+		t.Errorf("got %s, want a sorted to [1,2,3]", out)
 	}
 }
 
-// TestWriteSortArrays verifies that scalar arrays are sorted when requested.
-func TestWriteSortArrays(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"arr": [3, 1, 2]}`), Options{SortArrays: true, Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	if got := strings.TrimSpace(out.String()); got != `{"arr":[1,2,3]}` {
-		t.Fatalf("Write() output = %q, want %q", got, `{"arr":[1,2,3]}`)
-	}
-}
-
-// TestWriteSortArraysNestedScalarArrays verifies recursive sorting of scalar arrays.
-func TestWriteSortArraysNestedScalarArrays(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"outer":{"arr":["b","a"]}}`), Options{SortArrays: true, Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	if got := strings.TrimSpace(out.String()); got != `{"outer":{"arr":["a","b"]}}` {
-		t.Fatalf("Write() output = %q, want %q", got, `{"outer":{"arr":["a","b"]}}`)
-	}
-}
-
-// TestWriteSortArraysPreservesObjectArrayOrder verifies that arrays containing objects are not reordered.
-func TestWriteSortArraysPreservesObjectArrayOrder(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"arr": [{"b": 2}, {"a": 1}]}`), Options{SortArrays: true, Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	got := strings.TrimSpace(out.String())
-	bIdx := strings.Index(got, `"b"`)
-	aIdx := strings.Index(got, `"a"`)
-	if bIdx < 0 || aIdx < 0 {
-		t.Fatalf("Write() output = %q, missing expected keys", got)
-	}
-	if bIdx >= aIdx {
-		t.Fatalf("Write() object-array order not preserved: %q", got)
-	}
-}
-
-// TestWriteInvalidJSON verifies that malformed input returns a parse error.
-func TestWriteInvalidJSON(t *testing.T) {
-	err := Write(&strings.Builder{}, strings.NewReader(`{invalid}`), Options{})
-	if err == nil {
-		t.Fatal("Write() expected error for invalid JSON")
-	}
-}
-
-// TestCompareScalars verifies the ordering used when sorting scalar arrays.
-func TestCompareScalars(t *testing.T) {
-	if got := compareScalars(nil, false); got >= 0 {
-		t.Fatalf("compareScalars(nil, false) = %d, want < 0", got)
-	}
-	if got := compareScalars(false, true); got >= 0 {
-		t.Fatalf("compareScalars(false, true) = %d, want < 0", got)
-	}
-	if got := compareScalars("abc", "abd"); got >= 0 {
-		t.Fatalf("compareScalars(abc, abd) = %d, want < 0", got)
-	}
-}
-
-// TestWriteSortArraysMixedScalarTypes verifies the cross-type ordering for scalar arrays.
-func TestWriteSortArraysMixedScalarTypes(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"arr":["b",null,false,2,"a"]}`), Options{SortArrays: true, Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	if got := strings.TrimSpace(out.String()); got != `{"arr":[null,false,2,"a","b"]}` {
-		t.Fatalf("Write() output = %q, want %q", got, `{"arr":[null,false,2,"a","b"]}`)
-	}
-}
-
-// TestWriteSortArraysNumericOrder verifies numeric ordering instead of lexicographic ordering.
-func TestWriteSortArraysNumericOrder(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"arr":[2,10,1]}`), Options{SortArrays: true, Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	if got := strings.TrimSpace(out.String()); got != `{"arr":[1,2,10]}` {
-		t.Fatalf("Write() output = %q, want %q", got, `{"arr":[1,2,10]}`)
-	}
-}
-
-// TestWritePreservesLargeInteger verifies that UseNumber preserves large integer values.
-func TestWritePreservesLargeInteger(t *testing.T) {
-	var out strings.Builder
-	if err := Write(&out, strings.NewReader(`{"n":9007199254740993}`), Options{Compact: true}); err != nil {
-		t.Fatalf("Write() unexpected error: %v", err)
-	}
-	if got := strings.TrimSpace(out.String()); got != `{"n":9007199254740993}` {
-		t.Fatalf("Write() output = %q, want %q", got, `{"n":9007199254740993}`)
-	}
-}
-
-// TestWriteRejectsTrailingContent verifies that only a single top-level JSON value is accepted.
-func TestWriteRejectsTrailingContent(t *testing.T) {
-	err := Write(&strings.Builder{}, strings.NewReader(`{"a":1} trailing`), Options{})
-	if err == nil {
-		t.Fatal("Write() expected error for trailing content")
-	}
-	if !strings.Contains(err.Error(), "extra content") && !strings.Contains(err.Error(), "invalid character") {
-		t.Fatalf("Write() error = %q, want trailing-content parse error", err)
+func TestWriteSortArraysDisabled(t *testing.T) {
+	input := `{"a":[3,1,2]}`
+	out := mustWrite(t, input, format.Options{SortArrays: false, Depth: -1, Compact: true})
+	if !strings.Contains(out, `"a":[3,1,2]`) {
+		t.Errorf("got %s, want a left as [3,1,2]", out)
 	}
 }

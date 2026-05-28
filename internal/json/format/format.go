@@ -18,6 +18,10 @@ import (
 type Options struct {
 	SortArrays bool
 	Compact    bool
+	// Depth limits how many levels deep array sorting recurses.
+	// A value of -1 (the default) means unlimited. 0 disables sorting.
+	// 1 sorts only the top-level array, 2 sorts one level down, and so on.
+	Depth int
 }
 
 // Write reads a single JSON value from r, normalizes it, and writes it to w.
@@ -38,7 +42,11 @@ func Write(w io.Writer, r io.Reader, opts Options) error {
 	}
 
 	if opts.SortArrays {
-		v = normalizeArrays(v)
+		depth := opts.Depth
+		if depth == 0 {
+			depth = -1
+		}
+		v = normalizeArrays(v, depth)
 	}
 
 	enc := json.NewEncoder(w)
@@ -54,22 +62,32 @@ func Write(w io.Writer, r io.Reader, opts Options) error {
 }
 
 // normalizeArrays recursively sorts scalar arrays in place.
-func normalizeArrays(v any) any {
+// depth controls how many array levels deep to recurse: -1 means unlimited,
+// positive values decrement on each array level and stop when they reach 0.
+// Traversing into object values does not consume depth.
+func normalizeArrays(v any, depth int) any {
 	switch val := v.(type) {
 	case map[string]any:
+		// Object traversal does not count as a depth level.
 		for k, elem := range val {
-			val[k] = normalizeArrays(elem)
+			val[k] = normalizeArrays(elem, depth)
 		}
 		return val
 
 	case []any:
-		for i, elem := range val {
-			val[i] = normalizeArrays(elem)
-		}
-		if isScalarSlice(val) {
-			sort.Slice(val, func(i, j int) bool {
-				return compareScalars(val[i], val[j]) < 0
-			})
+		if depth != 0 {
+			next := depth
+			if next > 0 {
+				next--
+			}
+			for i, elem := range val {
+				val[i] = normalizeArrays(elem, next)
+			}
+			if isScalarSlice(val) {
+				sort.Slice(val, func(i, j int) bool {
+					return compareScalars(val[i], val[j]) < 0
+				})
+			}
 		}
 		return val
 
