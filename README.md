@@ -1,6 +1,6 @@
 # tools
 
-A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
+A collection of Go tools. Currently contains `cfup`, an HTTP checker and proxy for services behind Cloudflare Access, `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
 
 ## Install with Nix
 
@@ -19,6 +19,7 @@ nix profile add github:jason-riddle/tools#nas
 nix profile add github:jason-riddle/tools#pub
 nix profile add github:jason-riddle/tools#tick
 nix profile add github:jason-riddle/tools#uuid
+nix profile add github:jason-riddle/tools#cfup
 ```
 
 Build locally with Nix:
@@ -31,7 +32,51 @@ nix build 'path:.#nas'
 nix build 'path:.#pub'
 nix build 'path:.#tick'
 nix build 'path:.#uuid'
+nix build 'path:.#cfup'
 ```
+
+## cfup
+
+`cfup` checks whether an HTTP service behind Cloudflare Access is actually reachable, instead of treating the Access login page as a healthy upstream.
+
+When `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` are both set, `cfup` injects them as `CF-Access-Client-Id` and `CF-Access-Client-Secret`.
+
+### Build
+
+```bash
+go build -o cfup ./cmd/cfup
+```
+
+### Usage
+
+```bash
+./cfup https://example.com
+./cfup --url https://example.com
+./cfup --listen :8000 --url https://example.com
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `--url` | Target upstream URL |
+| `--listen` | Listen address for proxy mode |
+| `--timeout` | Per-request timeout (default `10s`) |
+| `-h`, `-help`, `--help` | Print usage and examples |
+
+### Check Mode
+
+`cfup` follows redirects, evaluates the final response, and exits `0` for `200-399` and non-zero otherwise.
+
+Example output:
+
+```text
+healthy status=200 final_url=https://example.com/app duration=182ms
+```
+
+### Proxy Mode
+
+`cfup --listen :8000 --url https://example.com` starts an HTTP server that forwards incoming requests to the configured upstream base URL while preserving method, path, query string, and request body.
 
 ## nas
 

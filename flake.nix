@@ -31,6 +31,7 @@
       # --- packages ---
       # Individual tools and a combined default that installs all tools.
       #
+      #   nix build .#cfup     — build the cfup binary
       #   nix build .#gob      — build the gob binary
       #   nix build .#json     — build the json binary
       #   nix build .#nas      — build the nas binary
@@ -39,6 +40,7 @@
       #   nix build .#uuid     — build the uuid binary
       #   nix build            — build all tools (default)
       #   nix profile add github:jason-riddle/tools        — install all tools
+      #   nix profile add github:jason-riddle/tools#cfup   — install cfup only
       #   nix profile add github:jason-riddle/tools#gob    — install gob only
       #   nix profile add github:jason-riddle/tools#json   — install json only
       #   nix profile add github:jason-riddle/tools#nas    — install nas only
@@ -59,6 +61,7 @@
               meta.mainProgram = name;         # tells `nix run .#<name>` which binary to exec
             };
 
+          cfup = mkTool "cfup";
           gob  = mkTool "gob";
           json = mkTool "json";
           nas  = mkTool "nas";
@@ -66,14 +69,14 @@
           tick = mkTool "tick";
           uuid = mkTool "uuid";
         in {
-          inherit gob json nas pub tick uuid;
+          inherit cfup gob json nas pub tick uuid;
 
           # Combined package: symlinks all binaries into a single store path.
           # This is what `nix profile add github:jason-riddle/tools` installs.
           default = pkgs.symlinkJoin {
             name  = "tools"; # stable name; version is already encoded in the store hash
-            paths = [ gob json nas pub tick uuid ];
-            meta.description = "Go CLI tools: gob, json, nas, pub, tick, and uuid";
+            paths = [ cfup gob json nas pub tick uuid ];
+            meta.description = "Go CLI tools: cfup, gob, json, nas, pub, tick, and uuid";
           };
         }
       );
