@@ -64,14 +64,22 @@ When contributing code:
 
 If you add or modify a command-line interface, make sure the usage shown in `README.md` stays accurate.
 
-## Code Style
+## Go Style and Design
 
-This project intentionally keeps the code straightforward.
+This project intentionally keeps the code straightforward and idiomatic.
 
-- Use `flag.FlagSet` per subcommand instead of the global `flag` package state.
-- Use `log.SetPrefix` and `log.SetFlags(0)` for clean CLI log output.
-- Prefer `fmt.Errorf("context: %w", err)` for wrapping errors.
-- Keep transport and protocol types simple and explicit.
+- Let `gofmt` drive formatting, and prefer the simplest code that solves the problem.
+- Choose short, descriptive names. Avoid repetitive names, `Get` prefixes, and package names like `util` or `helper`.
+- Keep packages small and cohesive. Put CLI entry points in `cmd/`, shared implementation in `internal/`, and avoid abstractions until there is a real need.
+- Prefer concrete types by default. Introduce interfaces only when they simplify a real caller or boundary.
+- Treat errors as values: return `error` last, handle or return errors deliberately, and add useful context with `fmt.Errorf("context: %w", err)`.
+- Keep error strings lowercase and without trailing punctuation.
+- Do not use `panic` for normal error handling; return errors and handle them in `main`.
+- Document exported names and any non-obvious behavior, defaults, or tradeoffs.
+- Favor APIs and types with useful zero values and sensible defaults when practical.
+- For CLI code, use `flag.FlagSet` per subcommand instead of the global `flag` package state, and use `log.SetPrefix` with `log.SetFlags(0)` for clean log output.
+
+Keep transport and protocol types simple and explicit.
 
 For the gob tool specifically:
 

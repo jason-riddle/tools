@@ -6,6 +6,8 @@ Guidance for AI agents working in this repository.
 
 Read `CONTRIBUTING.md` before making changes. It contains the shared repository guidance that applies to both human and agent contributors.
 
+Before making changes, inspect the repository layout with `tree` from the repo root (use a scoped view such as `tree -L 2` when appropriate) and read the relevant files for the area you plan to modify before editing.
+
 ## Agent-Specific Expectations
 
 - Keep changes narrow and task-focused.

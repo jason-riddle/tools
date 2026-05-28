@@ -76,6 +76,10 @@ gob: recv  version=1 type="ping" id="1" from=127.0.0.1:54321 body="hello world"
 
 Client terminal:
 ```
+gob: send  version=1 type="ping" id="1" addr=localhost:9000 body="hello world"
+gob: post  url=http://localhost:9000/send bytes=85
+gob: resp  status=200 OK
+gob: reply version=1 type="ping" id="1" body="hello world"
 sent    id=1 type=ping body="hello world"
 replied id=1 type=ping body="hello world"
 ```

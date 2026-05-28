@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// knownV4 is a well-known UUID string used for parse round-trip tests.
+// knownStr is a well-known UUID string used for parse round-trip tests.
 const knownStr = "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 
 // TestParseAllForms verifies that all four accepted input forms parse to the same UUID.

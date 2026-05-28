@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-// A UUID is a Universally Unique Identifier as specified in RFC 9562.
+// UUID is a Universally Unique Identifier as specified in RFC 9562.
 //
 // UUIDs are comparable, such as with the == operator.
 type UUID [16]byte
@@ -273,7 +273,6 @@ func NewV7() UUID {
 	return u
 }
 
-// errInvalidUUID is returned by Parse for invalid inputs.
 var errInvalidUUID = errors.New("uuid: invalid UUID")
 
 // IsNil reports whether u is the nil UUID.
