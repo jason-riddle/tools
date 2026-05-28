@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -18,8 +17,7 @@ Usage:
   tick [flags] [offset]
 
 Arguments:
-  offset  Optional duration offset such as +24h, -90m, or +30s.
-          The offset may appear before or after flags.
+  offset  Optional duration offset such as +24h or +30s.
 
 Flags:
   -nano
@@ -39,7 +37,7 @@ Notes:
 Examples:
   tick
   tick +24h
-  tick -nano -1h
+  tick -nano
   tick -format '2006-01-02 15:04:05 MST' +30m
   TZ=America/New_York tick
 `
@@ -68,13 +66,11 @@ func main() {
 }
 
 func run(args []string) error {
-	if wantsHelp(args) {
-		fmt.Fprint(os.Stdout, usage)
-		return nil
-	}
-
 	opts, err := parseOptions(args)
 	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		printUsageError(err)
 		return errUsage
 	}
@@ -103,37 +99,19 @@ func printUsageError(err error) {
 	fmt.Fprintf(os.Stderr, "tick: %v\n\n%s", err, usage)
 }
 
-func wantsHelp(args []string) bool {
-	for _, arg := range args {
-		switch arg {
-		case "-h", "--help", "-help":
-			return true
-		}
-	}
-
-	return false
-}
-
 func parseOptions(args []string) (options, error) {
 	var opts options
 
-	flagArgs, offset, err := splitArgs(args)
-	if err != nil {
-		return options{}, err
-	}
-
 	fs := flag.NewFlagSet("tick", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	fs.Usage = func() { fmt.Fprint(os.Stdout, usage) }
 	fs.BoolVar(&opts.nano, "nano", false, "print in RFC3339Nano format")
 	fs.BoolVar(&opts.epoch, "epoch", false, "print Unix epoch seconds")
 	fs.BoolVar(&opts.json, "json", false, "print common time package layouts as JSON")
 	fs.StringVar(&opts.format, "format", "", "print using a Go time layout string")
 
-	if err := fs.Parse(flagArgs); err != nil {
+	if err := fs.Parse(args); err != nil {
 		return options{}, err
-	}
-	if fs.NArg() != 0 {
-		return options{}, fmt.Errorf("unexpected arguments: %s", strings.Join(fs.Args(), " "))
 	}
 
 	modeCount := 0
@@ -153,76 +131,21 @@ func parseOptions(args []string) (options, error) {
 		return options{}, errors.New("-nano, -epoch, -format, and -json are mutually exclusive")
 	}
 
-	if offset != nil {
+	switch fs.NArg() {
+	case 0:
+		// no offset
+	case 1:
+		dur, err := time.ParseDuration(fs.Arg(0))
+		if err != nil {
+			return options{}, fmt.Errorf("invalid offset %q: %w", fs.Arg(0), err)
+		}
 		opts.hasOffset = true
-		opts.offset = *offset
+		opts.offset = dur
+	default:
+		return options{}, fmt.Errorf("unexpected arguments: %s", fs.Args())
 	}
 
 	return opts, nil
-}
-
-func splitArgs(args []string) ([]string, *time.Duration, error) {
-	flagArgs := make([]string, 0, len(args))
-	var offset *time.Duration
-
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-
-		switch {
-		case isBoolFlag(arg), isHelpFlag(arg), hasFlagValue(arg, "format"):
-			flagArgs = append(flagArgs, arg)
-		case isValueFlag(arg, "format"):
-			if i+1 >= len(args) {
-				return nil, nil, fmt.Errorf("flag needs a value: %s", arg)
-			}
-			flagArgs = append(flagArgs, arg, args[i+1])
-			i++
-		default:
-			dur, err := time.ParseDuration(arg)
-			if err == nil {
-				if offset != nil {
-					return nil, nil, errors.New("only one offset argument is allowed")
-				}
-				offset = &dur
-				continue
-			}
-
-			if strings.HasPrefix(arg, "-") {
-				flagArgs = append(flagArgs, arg)
-				continue
-			}
-
-			return nil, nil, fmt.Errorf("unexpected argument %q", arg)
-		}
-	}
-
-	return flagArgs, offset, nil
-}
-
-func isBoolFlag(arg string) bool {
-	switch arg {
-	case "-nano", "--nano", "-epoch", "--epoch", "-json", "--json":
-		return true
-	}
-
-	return false
-}
-
-func isHelpFlag(arg string) bool {
-	switch arg {
-	case "-h", "--help", "-help":
-		return true
-	}
-
-	return false
-}
-
-func isValueFlag(arg, name string) bool {
-	return arg == "-"+name || arg == "--"+name
-}
-
-func hasFlagValue(arg, name string) bool {
-	return strings.HasPrefix(arg, "-"+name+"=") || strings.HasPrefix(arg, "--"+name+"=")
 }
 
 func locationFromEnv(tz string, ok bool) (*time.Location, error) {

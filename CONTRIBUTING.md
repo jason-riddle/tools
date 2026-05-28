@@ -78,6 +78,7 @@ This project intentionally keeps the code straightforward and idiomatic.
 - Document exported names and any non-obvious behavior, defaults, or tradeoffs.
 - Favor APIs and types with useful zero values and sensible defaults when practical.
 - For CLI code, use `flag.FlagSet` per subcommand instead of the global `flag` package state, and use `log.SetPrefix` with `log.SetFlags(0)` for clean log output.
+- Flags must come before positional arguments. Do not write custom pre-pass logic to support flags after positional args; rely on standard `flag.FlagSet` parsing behavior instead.
 
 Keep transport and protocol types simple and explicit.
 

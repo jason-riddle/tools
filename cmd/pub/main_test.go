@@ -25,8 +25,8 @@ func TestParseOptionsDefaults(t *testing.T) {
 	}
 }
 
-func TestParseOptionsAllowsTimeoutAfterUser(t *testing.T) {
-	opts, err := parseOptions([]string{"octocat", "--timeout", "3s"})
+func TestParseOptionsAllowsTimeoutBeforeUser(t *testing.T) {
+	opts, err := parseOptions([]string{"--timeout", "3s", "octocat"})
 	if err != nil {
 		t.Fatalf("parseOptions() unexpected error: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestRunReturnsUsageOnTooManyArgs(t *testing.T) {
 		return run([]string{"one", "two"})
 	})
 
-	if !strings.Contains(stderr, "pub: accepts at most one username argument") {
+	if !strings.Contains(stderr, "accepts at most one username argument") {
 		t.Fatalf("run() stderr = %q, want parse error prefix", stderr)
 	}
 	if !strings.Contains(stderr, "Usage:") {

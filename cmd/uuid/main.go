@@ -47,7 +47,6 @@ func main() {
 		}
 		os.Exit(1)
 	}
-
 }
 
 func run(args []string) error {
@@ -73,38 +72,24 @@ func run(args []string) error {
 	}
 }
 
-func wantsHelp(args []string) bool {
-	for _, arg := range args {
-		switch arg {
-		case "-h", "-help", "--help":
-			return true
-		}
-	}
-
-	return false
-}
-
 // runNew generates a new UUID of the requested version.
 func runNew(args []string) error {
-	if wantsHelp(args) {
-		printNewUsage(os.Stdout)
-		return nil
-	}
-
 	fs := flag.NewFlagSet("new", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	fs.Usage = func() { printNewUsage(os.Stdout) }
 	ver := fs.Int("v", 4, "UUID version to generate: 4 or 7")
-	fs.Usage = func() {
-		printNewUsage(os.Stderr)
-	}
+
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "uuid new: %v\n\n", err)
-		fs.Usage()
+		printNewUsage(os.Stderr)
 		return errUsage
 	}
 	if fs.NArg() != 0 {
 		fmt.Fprintf(os.Stderr, "uuid new: unexpected arguments: %s\n\n", strings.Join(fs.Args(), " "))
-		fs.Usage()
+		printNewUsage(os.Stderr)
 		return errUsage
 	}
 
@@ -124,26 +109,23 @@ func runNew(args []string) error {
 
 // runParse parses a UUID string and prints structured details.
 func runParse(args []string) error {
-	if wantsHelp(args) {
-		printParseUsage(os.Stdout)
-		return nil
-	}
-
 	fs := flag.NewFlagSet("parse", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	fs.Usage = func() {
-		printParseUsage(os.Stderr)
-	}
+	fs.Usage = func() { printParseUsage(os.Stdout) }
+
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "uuid parse: %v\n\n", err)
-		fs.Usage()
+		printParseUsage(os.Stderr)
 		return errUsage
 	}
 
 	if fs.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, "uuid parse: expected exactly one uuid-string argument")
 		fmt.Fprintln(os.Stderr)
-		fs.Usage()
+		printParseUsage(os.Stderr)
 		return errUsage
 	}
 
@@ -163,26 +145,23 @@ func runParse(args []string) error {
 
 // runVersion prints only the version number of a UUID string.
 func runVersion(args []string) error {
-	if wantsHelp(args) {
-		printVersionUsage(os.Stdout)
-		return nil
-	}
-
 	fs := flag.NewFlagSet("version", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	fs.Usage = func() {
-		printVersionUsage(os.Stderr)
-	}
+	fs.Usage = func() { printVersionUsage(os.Stdout) }
+
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "uuid version: %v\n\n", err)
-		fs.Usage()
+		printVersionUsage(os.Stderr)
 		return errUsage
 	}
 
 	if fs.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, "uuid version: expected exactly one uuid-string argument")
 		fmt.Fprintln(os.Stderr)
-		fs.Usage()
+		printVersionUsage(os.Stderr)
 		return errUsage
 	}
 

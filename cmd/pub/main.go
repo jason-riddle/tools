@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -59,13 +58,11 @@ func main() {
 }
 
 func run(args []string) error {
-	if wantsHelp(args) {
-		fmt.Fprint(os.Stdout, usage)
-		return nil
-	}
-
 	opts, err := parseOptions(args)
 	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		printUsageError(err)
 		return errUsage
 	}
@@ -84,83 +81,32 @@ func printUsageError(err error) {
 	fmt.Fprintf(os.Stderr, "pub: %v\n\n%s", err, usage)
 }
 
-func wantsHelp(args []string) bool {
-	for _, arg := range args {
-		switch arg {
-		case "-h", "--help", "-help":
-			return true
-		}
-	}
-
-	return false
-}
-
 func parseOptions(args []string) (options, error) {
 	var opts options
 
-	flagArgs, user, err := splitArgs(args)
-	if err != nil {
-		return options{}, err
-	}
-
 	fs := flag.NewFlagSet("pub", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	fs.Usage = func() { fmt.Fprint(os.Stdout, usage) }
 	fs.DurationVar(&opts.timeout, "timeout", defaultTimeout, "HTTP timeout")
 
-	if err := fs.Parse(flagArgs); err != nil {
+	if err := fs.Parse(args); err != nil {
 		return options{}, err
 	}
-	if fs.NArg() != 0 {
-		return options{}, fmt.Errorf("unexpected arguments: %s", strings.Join(fs.Args(), " "))
-	}
 
-	if user == "" {
-		user = defaultUser
+	switch fs.NArg() {
+	case 0:
+		opts.user = defaultUser
+	case 1:
+		opts.user = fs.Arg(0)
+	default:
+		return options{}, errors.New("accepts at most one username argument")
 	}
-	opts.user = user
 
 	return opts, nil
 }
 
-func splitArgs(args []string) ([]string, string, error) {
-	flagArgs := make([]string, 0, len(args))
-	var user string
-
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-
-		switch {
-		case hasFlagValue(arg, "timeout"):
-			flagArgs = append(flagArgs, arg)
-		case isValueFlag(arg, "timeout"):
-			if i+1 >= len(args) {
-				return nil, "", fmt.Errorf("flag needs a value: %s", arg)
-			}
-			flagArgs = append(flagArgs, arg, args[i+1])
-			i++
-		case strings.HasPrefix(arg, "-"):
-			flagArgs = append(flagArgs, arg)
-		default:
-			if user != "" {
-				return nil, "", errors.New("accepts at most one username argument")
-			}
-			user = arg
-		}
-	}
-
-	return flagArgs, user, nil
-}
-
-func isValueFlag(arg, name string) bool {
-	return arg == "-"+name || arg == "--"+name
-}
-
-func hasFlagValue(arg, name string) bool {
-	return strings.HasPrefix(arg, "-"+name+"=") || strings.HasPrefix(arg, "--"+name+"=")
-}
-
 func fetchKeys(client *http.Client, baseURL, user string) ([]byte, error) {
-	url := strings.TrimRight(baseURL, "/") + "/" + user + ".keys"
+	url := baseURL + "/" + user + ".keys"
 
 	resp, err := client.Get(url)
 	if err != nil {

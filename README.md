@@ -71,7 +71,7 @@ go build -o tick ./cmd/tick
 ```bash
 ./tick
 ./tick +24h
-./tick -nano -1h
+./tick -nano
 ./tick -epoch
 ./tick -format '2006-01-02 15:04:05 MST'
 ./tick -json
@@ -89,7 +89,7 @@ TZ=America/New_York ./tick
 
 `-nano`, `-epoch`, `-format`, and `-json` are mutually exclusive.
 
-`tick` accepts one optional positional duration offset, such as `+24h`, `-90m`, or `+30s`. The offset may appear before or after flags.
+`tick` accepts one optional positional duration offset, such as `+24h` or `+30s`. The offset must appear after any flags.
 
 ## gob
 

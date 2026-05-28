@@ -38,7 +38,7 @@ Examples:
 var errUsage = errors.New("usage")
 
 func main() {
-	log.SetFlags(0) // clean output, no timestamps from log prefix
+	log.SetFlags(0)
 	log.SetPrefix("gob: ")
 
 	if err := run(os.Args[1:]); err != nil {
@@ -47,7 +47,6 @@ func main() {
 		}
 		os.Exit(1)
 	}
-
 }
 
 func run(args []string) error {
@@ -71,39 +70,24 @@ func run(args []string) error {
 	}
 }
 
-func wantsHelp(args []string) bool {
-	for _, arg := range args {
-		switch arg {
-		case "-h", "-help", "--help":
-			return true
-		}
-	}
-
-	return false
-}
-
 // runServer parses server subcommand flags and starts the HTTP server.
 func runServer(args []string) error {
-	if wantsHelp(args) {
-		printServerUsage(os.Stdout)
-		return nil
-	}
-
 	fs := flag.NewFlagSet("server", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	fs.Usage = func() { printServerUsage(os.Stdout) }
 	listen := fs.String("listen", ":9000", "address to listen on")
-	fs.Usage = func() {
-		printServerUsage(os.Stderr)
-	}
 
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "gob server: %v\n\n", err)
-		fs.Usage()
+		printServerUsage(os.Stderr)
 		return errUsage
 	}
 	if fs.NArg() != 0 {
 		fmt.Fprintf(os.Stderr, "gob server: unexpected arguments: %s\n\n", strings.Join(fs.Args(), " "))
-		fs.Usage()
+		printServerUsage(os.Stderr)
 		return errUsage
 	}
 
@@ -116,30 +100,26 @@ func runServer(args []string) error {
 
 // runClient parses client subcommand flags, builds a Message, and sends it.
 func runClient(args []string) error {
-	if wantsHelp(args) {
-		printClientUsage(os.Stdout)
-		return nil
-	}
-
 	fs := flag.NewFlagSet("client", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	fs.Usage = func() { printClientUsage(os.Stdout) }
 	addr := fs.String("addr", "localhost:9000", "server address")
 	id := fs.String("id", "1", "message ID")
 	msgType := fs.String("type", "ping", "message type (e.g. ping, chat)")
 	body := fs.String("body", "hello", "message body")
 	timeout := fs.Duration("timeout", 5*time.Second, "connection timeout")
-	fs.Usage = func() {
-		printClientUsage(os.Stderr)
-	}
 
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "gob client: %v\n\n", err)
-		fs.Usage()
+		printClientUsage(os.Stderr)
 		return errUsage
 	}
 	if fs.NArg() != 0 {
 		fmt.Fprintf(os.Stderr, "gob client: unexpected arguments: %s\n\n", strings.Join(fs.Args(), " "))
-		fs.Usage()
+		printClientUsage(os.Stderr)
 		return errUsage
 	}
 

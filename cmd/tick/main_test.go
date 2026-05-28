@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-func TestParseOptionsOffsetBeforeFlags(t *testing.T) {
-	opts, err := parseOptions([]string{"+24h", "--nano"})
+func TestParseOptionsOffset(t *testing.T) {
+	opts, err := parseOptions([]string{"--nano", "+24h"})
 	if err != nil {
 		t.Fatalf("parseOptions() unexpected error: %v", err)
 	}
@@ -19,19 +19,6 @@ func TestParseOptionsOffsetBeforeFlags(t *testing.T) {
 		t.Fatal("parseOptions() did not set nano mode")
 	}
 	if !opts.hasOffset || opts.offset != 24*time.Hour {
-		t.Fatalf("parseOptions() offset = %v, hasOffset = %v", opts.offset, opts.hasOffset)
-	}
-}
-
-func TestParseOptionsOffsetAfterFlags(t *testing.T) {
-	opts, err := parseOptions([]string{"--epoch", "-90m"})
-	if err != nil {
-		t.Fatalf("parseOptions() unexpected error: %v", err)
-	}
-	if !opts.epoch {
-		t.Fatal("parseOptions() did not set epoch mode")
-	}
-	if !opts.hasOffset || opts.offset != -90*time.Minute {
 		t.Fatalf("parseOptions() offset = %v, hasOffset = %v", opts.offset, opts.hasOffset)
 	}
 }
@@ -47,7 +34,7 @@ func TestParseOptionsRejectsMultipleModes(t *testing.T) {
 }
 
 func TestParseOptionsRejectsMultipleOffsets(t *testing.T) {
-	_, err := parseOptions([]string{"+1h", "-30m"})
+	_, err := parseOptions([]string{"+1h", "+30m"})
 	if err == nil {
 		t.Fatal("parseOptions() expected an error for multiple offsets")
 	}
