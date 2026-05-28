@@ -224,9 +224,16 @@ local (id=2, type=docker, status=up)
 
 ## json
 
-`json` pretty-prints JSON with stable object key ordering.
+`json` pretty-prints JSON with stable, sorted object keys.
 
-By default it preserves array order. Use `--sort-arrays` to sort arrays of scalar values recursively; arrays containing objects or nested arrays keep their original order.
+By default it preserves array order and sorts object keys at every depth.
+Three flags give finer control over how deep sorting applies:
+
+- `--sort-arrays` sorts arrays of scalar values; use `--arrays-depth N` to limit how many array levels deep that goes.
+- `--sort-keys-min-depth N` sets the first object level at which key sorting begins (default 1 = top level).
+- `--sort-keys-max-depth N` sets the last object level at which key sorting applies (default -1 = unlimited).
+
+Use both min/max together to sort keys at exactly one depth — for example, `--sort-keys-min-depth 2 --sort-keys-max-depth 2` leaves top-level keys in input order while sorting the next level down.
 
 ### Build
 
@@ -241,15 +248,84 @@ go build -o json ./cmd/json
 ./json file.json
 ./json --compact file.json
 ./json --sort-arrays file.json
+./json --sort-arrays --arrays-depth 1 file.json
+./json --sort-keys-min-depth 1 --sort-keys-max-depth 1 file.json
+./json --sort-keys-min-depth 2 --sort-keys-max-depth 2 file.json
 ```
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
-| `--sort-arrays` | Sort arrays of scalar values recursively |
-| `--compact` | Emit compact JSON instead of pretty-printed output |
-| `-h`, `-help`, `--help` | Print usage and examples |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--sort-arrays` | `false` | Sort arrays of scalar values recursively |
+| `--arrays-depth N` | `-1` | Limit array sorting to N array levels deep (`-1` = unlimited). Requires `--sort-arrays`. |
+| `--sort-keys-min-depth N` | `1` | First object level at which key sorting begins. `1` = top level. |
+| `--sort-keys-max-depth N` | `-1` | Last object level at which key sorting applies. `-1` = no upper bound. |
+| `--compact` | `false` | Emit compact JSON instead of pretty-printed output |
+| `-h`, `-help`, `--help` | | Print usage and examples |
+
+### Examples
+
+**Default — pretty-print with sorted keys at all levels:**
+
+```
+Input:  {"z":1,"a":2}
+Output: {
+          "a": 2,
+          "z": 1
+        }
+```
+
+**`--sort-arrays` — sort scalar arrays everywhere:**
+
+```
+Input:  {"tags":["z","a","m"],"ids":[3,1,2]}
+Output: {
+          "ids": [1, 2, 3],
+          "tags": ["a", "m", "z"]
+        }
+```
+
+**`--sort-arrays --arrays-depth 1` — sort only the first array level; arrays inside arrays are left alone:**
+
+```
+Input:  {"top":[3,1,2],"matrix":[[5,4],[8,6]]}
+Output: {
+          "matrix": [[5,4],[8,6]],
+          "top": [1, 2, 3]
+        }
+```
+
+**`--sort-keys-min-depth 1 --sort-keys-max-depth 1` — sort only top-level object keys; nested keys keep input order:**
+
+```
+Input:  {"z":{"y":1,"x":2},"b":{"d":3,"c":4}}
+Output: {
+          "b": {
+            "d": 3,
+            "c": 4
+          },
+          "z": {
+            "y": 1,
+            "x": 2
+          }
+        }
+```
+
+**`--sort-keys-min-depth 2 --sort-keys-max-depth 2` — leave top-level keys in input order, sort only depth-2 keys:**
+
+This is useful for files like a skill lock file where `version` must stay first but the skill names inside `skills` should be alphabetical.
+
+```
+Input:  {"version":3,"skills":{"z-skill":{},"a-skill":{}}}
+Output: {
+          "version": 3,
+          "skills": {
+            "a-skill": {},
+            "z-skill": {}
+          }
+        }
+```
 
 ## pub
 

@@ -23,9 +23,16 @@ Flags:
   --sort-arrays
         Sort arrays of scalar values recursively; arrays containing objects
         or nested arrays keep their original order.
-  --depth N
+  --arrays-depth N
         Limit recursive array sorting to N levels deep. Requires --sort-arrays.
         -1 (default) means unlimited; 1 sorts only the top-level array.
+  --sort-keys-min-depth N
+        First object level at which key sorting begins. Default 1 (top level).
+        Set to 2 to leave top-level keys in input order and start sorting
+        one level down.
+  --sort-keys-max-depth N
+        Last object level at which key sorting applies. -1 (default) means
+        unlimited. Set equal to --sort-keys-min-depth to sort exactly one level.
   --compact
         Emit compact JSON instead of pretty-printed output.
   -h, -help, --help
@@ -36,15 +43,19 @@ Examples:
   json file.json
   json --compact file.json
   json --sort-arrays file.json
-  json --sort-arrays --depth 1 file.json
+  json --sort-arrays --arrays-depth 1 file.json
+  json --sort-keys-min-depth 2 --sort-keys-max-depth 2 file.json
+  json --sort-keys-min-depth 1 --sort-keys-max-depth 1 file.json
 `
 
 var errUsage = errors.New("usage")
 
 type options struct {
-	sortArrays bool
-	compact    bool
-	depth      int
+	sortArrays       bool
+	compact          bool
+	arraysDepth      int
+	sortKeysMinDepth int
+	sortKeysMaxDepth int
 }
 
 func main() {
@@ -82,9 +93,11 @@ func run(args []string) error {
 	}
 
 	return jsonformat.Write(os.Stdout, r, jsonformat.Options{
-		SortArrays: opts.sortArrays,
-		Compact:    opts.compact,
-		Depth:      opts.depth,
+		SortArrays:       opts.sortArrays,
+		Compact:          opts.compact,
+		ArraysDepth:      opts.arraysDepth,
+		SortKeysMinDepth: opts.sortKeysMinDepth,
+		SortKeysMaxDepth: opts.sortKeysMaxDepth,
 	})
 }
 
@@ -100,7 +113,9 @@ func parseOptions(args []string) (options, string, error) {
 	fs.Usage = func() { fmt.Fprint(os.Stdout, usage) }
 	fs.BoolVar(&opts.sortArrays, "sort-arrays", false, "sort arrays of scalar values recursively")
 	fs.BoolVar(&opts.compact, "compact", false, "emit compact JSON instead of pretty-printed output")
-	fs.IntVar(&opts.depth, "depth", -1, "limit array sorting recursion depth (-1 means unlimited)")
+	fs.IntVar(&opts.arraysDepth, "arrays-depth", -1, "limit array sorting recursion depth (-1 means unlimited)")
+	fs.IntVar(&opts.sortKeysMinDepth, "sort-keys-min-depth", 1, "first object level at which key sorting begins (1 = top level)")
+	fs.IntVar(&opts.sortKeysMaxDepth, "sort-keys-max-depth", -1, "last object level at which key sorting applies (-1 means unlimited)")
 
 	if err := fs.Parse(args); err != nil {
 		return options{}, "", err
