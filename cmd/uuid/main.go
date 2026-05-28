@@ -93,14 +93,9 @@ func runNew(args []string) error {
 		return errUsage
 	}
 
-	var u uuid.UUID
-	switch *ver {
-	case 4:
-		u = uuid.NewV4()
-	case 7:
-		u = uuid.NewV7()
-	default:
-		return fmt.Errorf("unsupported version %d; use 4 or 7", *ver)
+	u, err := uuid.NewWithOptions(uuid.NewOptions{Version: *ver})
+	if err != nil {
+		return err
 	}
 	fmt.Println(u)
 
@@ -133,12 +128,13 @@ func runParse(args []string) error {
 	if err != nil {
 		return err
 	}
+	details := u.Details()
 
-	fmt.Printf("uuid:    %s\n", u)
-	fmt.Printf("version: %d\n", u.Version())
-	fmt.Printf("variant: %s\n", u.Variant())
-	fmt.Printf("nil:     %v\n", u.IsNil())
-	fmt.Printf("max:     %v\n", u.IsMax())
+	fmt.Printf("uuid:    %s\n", details.UUID)
+	fmt.Printf("version: %d\n", details.Version)
+	fmt.Printf("variant: %s\n", details.Variant)
+	fmt.Printf("nil:     %v\n", details.Nil)
+	fmt.Printf("max:     %v\n", details.Max)
 
 	return nil
 }

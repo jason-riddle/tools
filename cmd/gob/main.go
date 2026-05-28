@@ -91,7 +91,7 @@ func runServer(args []string) error {
 		return errUsage
 	}
 
-	if err := server.Run(*listen); err != nil {
+	if err := server.Run(server.Options{Listen: *listen}); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}
 
@@ -130,7 +130,7 @@ func runClient(args []string) error {
 		Body:    []byte(*body),
 	}
 
-	reply, err := client.Send(*addr, msg, *timeout)
+	reply, err := client.Send(client.Options{Addr: *addr, Timeout: *timeout, Message: msg})
 	if err != nil {
 		return fmt.Errorf("client error: %w", err)
 	}

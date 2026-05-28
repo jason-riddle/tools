@@ -22,7 +22,7 @@ func TestSendRoundTrip(t *testing.T) {
 		Body:    []byte("hello"),
 	}
 
-	reply, err := Send(strings.TrimPrefix(ts.URL, "http://"), msg, time.Second)
+	reply, err := Send(Options{Addr: strings.TrimPrefix(ts.URL, "http://"), Timeout: time.Second, Message: msg})
 	if err != nil {
 		t.Fatalf("Send() unexpected error: %v", err)
 	}

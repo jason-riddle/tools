@@ -9,6 +9,11 @@ import (
 	"github.com/jason-riddle/tools/internal/gob/protocol"
 )
 
+// Options configures the gob HTTP server.
+type Options struct {
+	Listen string
+}
+
 // Handler returns an http.Handler that receives gob-encoded Messages on POST /send.
 func Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -37,8 +42,8 @@ func handleSend(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Run starts the HTTP server on the given address.
-func Run(addr string) error {
-	log.Printf("listening on %s", addr)
-	return http.ListenAndServe(addr, Handler())
+// Run starts the HTTP server on the configured address.
+func Run(opts Options) error {
+	log.Printf("listening on %s", opts.Listen)
+	return http.ListenAndServe(opts.Listen, Handler())
 }

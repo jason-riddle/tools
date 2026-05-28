@@ -246,3 +246,46 @@ func TestVariant(t *testing.T) {
 		t.Errorf("Variant() = %q, want %q", v, "RFC 9562")
 	}
 }
+
+func TestNewWithOptions(t *testing.T) {
+	u4, err := NewWithOptions(NewOptions{Version: 4})
+	if err != nil {
+		t.Fatalf("NewWithOptions(v4) unexpected error: %v", err)
+	}
+	if got := u4.Version(); got != 4 {
+		t.Fatalf("NewWithOptions(v4) version = %d, want 4", got)
+	}
+
+	u7, err := NewWithOptions(NewOptions{Version: 7})
+	if err != nil {
+		t.Fatalf("NewWithOptions(v7) unexpected error: %v", err)
+	}
+	if got := u7.Version(); got != 7 {
+		t.Fatalf("NewWithOptions(v7) version = %d, want 7", got)
+	}
+
+	_, err = NewWithOptions(NewOptions{Version: 9})
+	if err == nil {
+		t.Fatal("NewWithOptions(invalid) expected error")
+	}
+}
+
+func TestDetails(t *testing.T) {
+	u := MustParse(knownStr)
+	d := u.Details()
+	if d.UUID != knownStr {
+		t.Fatalf("Details().UUID = %q, want %q", d.UUID, knownStr)
+	}
+	if d.Version != 1 {
+		t.Fatalf("Details().Version = %d, want 1", d.Version)
+	}
+	if d.Variant != "RFC 9562" {
+		t.Fatalf("Details().Variant = %q, want %q", d.Variant, "RFC 9562")
+	}
+	if d.Nil {
+		t.Fatal("Details().Nil = true, want false")
+	}
+	if d.Max {
+		t.Fatal("Details().Max = true, want false")
+	}
+}

@@ -24,6 +24,20 @@ import (
 	"time"
 )
 
+// NewOptions configures UUID generation.
+type NewOptions struct {
+	Version int
+}
+
+// Details contains human-readable information about a UUID.
+type Details struct {
+	UUID    string
+	Version int
+	Variant string
+	Nil     bool
+	Max     bool
+}
+
 // UUID is a Universally Unique Identifier as specified in RFC 9562.
 //
 // UUIDs are comparable, such as with the == operator.
@@ -98,6 +112,18 @@ func MustParse(s string) UUID {
 // should use New. At this time, New is equivalent to [NewV4].
 func New() UUID {
 	return NewV4()
+}
+
+// NewWithOptions returns a new UUID for the requested version.
+func NewWithOptions(opts NewOptions) (UUID, error) {
+	switch opts.Version {
+	case 0, 4:
+		return NewV4(), nil
+	case 7:
+		return NewV7(), nil
+	default:
+		return UUID{}, fmt.Errorf("unsupported version %d; use 4 or 7", opts.Version)
+	}
 }
 
 // Nil returns the Nil UUID 00000000-0000-0000-0000-000000000000.
@@ -206,6 +232,17 @@ func (u UUID) Variant() string {
 		return "Microsoft backward compatibility"
 	default:
 		return "reserved"
+	}
+}
+
+// Details returns structured details for u.
+func (u UUID) Details() Details {
+	return Details{
+		UUID:    u.String(),
+		Version: u.Version(),
+		Variant: u.Variant(),
+		Nil:     u.IsNil(),
+		Max:     u.IsMax(),
 	}
 }
 
