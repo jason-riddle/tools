@@ -1,6 +1,6 @@
 # tools
 
-A collection of Go tools. Currently contains `cfup`, an HTTP checker and proxy for services behind Cloudflare Access, `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
+A collection of Go tools. Currently contains `cfup`, an HTTP checker and proxy for services behind Cloudflare Access, `grab`, a single-file downloader, `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
 
 ## Install with Nix
 
@@ -14,6 +14,7 @@ Install a specific tool:
 
 ```bash
 nix profile add github:jason-riddle/tools#gob
+nix profile add github:jason-riddle/tools#grab
 nix profile add github:jason-riddle/tools#json
 nix profile add github:jason-riddle/tools#nas
 nix profile add github:jason-riddle/tools#pub
@@ -27,6 +28,7 @@ Build locally with Nix:
 ```bash
 nix build 'path:.#default'
 nix build 'path:.#gob'
+nix build 'path:.#grab'
 nix build 'path:.#json'
 nix build 'path:.#nas'
 nix build 'path:.#pub'
@@ -77,6 +79,35 @@ healthy status=200 final_url=https://example.com/app duration=182ms
 ### Proxy Mode
 
 `cfup --listen :8000 --url https://example.com` starts an HTTP server that forwards incoming requests to the configured upstream base URL while preserving method, path, query string, and request body.
+
+## grab
+
+`grab` downloads a single file from a URL into the current directory.
+
+If `-o` is not provided, it first tries the response `Content-Disposition` filename, then falls back to the last path segment of the final URL after redirects. It refuses to overwrite existing files unless `-f` is set.
+
+### Build
+
+```bash
+go build -o grab ./cmd/grab
+```
+
+### Usage
+
+```bash
+./grab https://example.com/file.tar.gz
+./grab -o archive.tar.gz https://example.com/file.tar.gz
+./grab -f https://example.com/file.tar.gz
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `-o string` | Output filename |
+| `-f` | Allow overwriting an existing file |
+| `-timeout duration` | HTTP timeout (default `30s`) |
+| `-h`, `-help`, `--help` | Print usage and examples |
 
 ## nas
 
