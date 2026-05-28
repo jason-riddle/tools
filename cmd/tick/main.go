@@ -17,22 +17,30 @@ const usage = `tick - print the current time
 Usage:
   tick [flags] [offset]
 
-Flags:
-  --nano              print in RFC3339Nano format
-  --epoch             print Unix epoch seconds
-  --format <layout>   print using a Go time layout string
-  --json              print common time package layouts as JSON
-  --help              print this help text
+Arguments:
+  offset  Optional duration offset such as +24h, -90m, or +30s.
+          The offset may appear before or after flags.
 
-Offset:
-  One optional positional duration offset, such as +24h, -90m, or +30s.
-  The offset may appear before or after flags.
+Flags:
+  -nano
+        Print in RFC3339Nano format
+  -epoch
+        Print Unix epoch seconds
+  -format string
+        Print using a Go time layout string
+  -json
+        Print common time package layouts as JSON
+  -h, -help, --help
+        Show help
+
+Notes:
+  -nano, -epoch, -format, and -json are mutually exclusive.
 
 Examples:
   tick
   tick +24h
-  tick --nano -1h
-  tick --format '2006-01-02 15:04:05 MST' +30m
+  tick -nano -1h
+  tick -format '2006-01-02 15:04:05 MST' +30m
   TZ=America/New_York tick
 `
 
@@ -67,7 +75,7 @@ func run(args []string) error {
 
 	opts, err := parseOptions(args)
 	if err != nil {
-		fmt.Fprint(os.Stderr, usage)
+		printUsageError(err)
 		return errUsage
 	}
 
@@ -89,6 +97,10 @@ func run(args []string) error {
 	fmt.Fprintln(os.Stdout, output)
 
 	return nil
+}
+
+func printUsageError(err error) {
+	fmt.Fprintf(os.Stderr, "tick: %v\n\n%s", err, usage)
 }
 
 func wantsHelp(args []string) bool {
@@ -138,7 +150,7 @@ func parseOptions(args []string) (options, error) {
 		modeCount++
 	}
 	if modeCount > 1 {
-		return options{}, errors.New("--nano, --epoch, --format, and --json are mutually exclusive")
+		return options{}, errors.New("-nano, -epoch, -format, and -json are mutually exclusive")
 	}
 
 	if offset != nil {

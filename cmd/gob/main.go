@@ -4,8 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jason-riddle/tools/internal/gob/client"
@@ -22,19 +24,15 @@ Commands:
   server    Start the gob HTTP server
   client    Send a gob message to the server
 
-Server flags:
-  -listen string   address to listen on (default ":9000")
+Run 'gob <command> -h' for command-specific help.
 
-Client flags:
-  -addr    string   server address        (default "localhost:9000")
-  -id      string   message ID            (default "1")
-  -type    string   message type          (default "ping")
-  -body    string   message body          (default "hello")
-  -timeout duration connection timeout    (default 5s)
+Global help:
+  -h, -help, --help
+        Show help
 
 Examples:
-  gob server --listen :9000
-  gob client --addr localhost:9000 --type ping --body "hello world"
+  gob server -listen :9000
+  gob client -addr localhost:9000 -type ping -body "hello world"
 `
 
 var errUsage = errors.New("usage")
@@ -63,7 +61,7 @@ func run(args []string) error {
 		return runServer(args[1:])
 	case "client":
 		return runClient(args[1:])
-	case "-h", "--help", "help":
+	case "-h", "-help", "--help", "help":
 		fmt.Fprint(os.Stdout, usage)
 		return nil
 	default:
@@ -76,16 +74,35 @@ func run(args []string) error {
 // runServer parses server subcommand flags and starts the HTTP server.
 func runServer(args []string) error {
 	fs := flag.NewFlagSet("server", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
 	listen := fs.String("listen", ":9000", "address to listen on")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: gob server [flags]")
-		fs.PrintDefaults()
+		fmt.Fprint(os.Stderr, `gob server - start the gob HTTP server
+
+Usage:
+  gob server [flags]
+
+Flags:
+  -listen string
+        Address to listen on (default ":9000")
+
+Examples:
+  gob server -listen :9000
+`)
 	}
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
+			fs.Usage()
 			return nil
 		}
+		fmt.Fprintf(os.Stderr, "gob server: %v\n\n", err)
+		fs.Usage()
+		return errUsage
+	}
+	if fs.NArg() != 0 {
+		fmt.Fprintf(os.Stderr, "gob server: unexpected arguments: %s\n\n", strings.Join(fs.Args(), " "))
+		fs.Usage()
 		return errUsage
 	}
 
@@ -99,20 +116,47 @@ func runServer(args []string) error {
 // runClient parses client subcommand flags, builds a Message, and sends it.
 func runClient(args []string) error {
 	fs := flag.NewFlagSet("client", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
 	addr := fs.String("addr", "localhost:9000", "server address")
 	id := fs.String("id", "1", "message ID")
 	msgType := fs.String("type", "ping", "message type (e.g. ping, chat)")
 	body := fs.String("body", "hello", "message body")
 	timeout := fs.Duration("timeout", 5*time.Second, "connection timeout")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: gob client [flags]")
-		fs.PrintDefaults()
+		fmt.Fprint(os.Stderr, `gob client - send a gob message to the server
+
+Usage:
+  gob client [flags]
+
+Flags:
+  -addr string
+        Server address (default "localhost:9000")
+  -id string
+        Message ID (default "1")
+  -type string
+        Message type (default "ping")
+  -body string
+        Message body (default "hello")
+  -timeout duration
+        Connection timeout (default 5s)
+
+Examples:
+  gob client -addr localhost:9000 -type ping -body "hello world"
+`)
 	}
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
+			fs.Usage()
 			return nil
 		}
+		fmt.Fprintf(os.Stderr, "gob client: %v\n\n", err)
+		fs.Usage()
+		return errUsage
+	}
+	if fs.NArg() != 0 {
+		fmt.Fprintf(os.Stderr, "gob client: unexpected arguments: %s\n\n", strings.Join(fs.Args(), " "))
+		fs.Usage()
 		return errUsage
 	}
 

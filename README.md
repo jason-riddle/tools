@@ -1,10 +1,10 @@
 # tools
 
-A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, `tick`, a time CLI, and `uuid`, a UUID CLI.
+A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
 
 ## Install with Nix
 
-Install both tools from the flake:
+Install all tools from the flake:
 
 ```bash
 nix profile add github:jason-riddle/tools
@@ -14,6 +14,7 @@ Install a specific tool:
 
 ```bash
 nix profile add github:jason-riddle/tools#gob
+nix profile add github:jason-riddle/tools#pub
 nix profile add github:jason-riddle/tools#tick
 nix profile add github:jason-riddle/tools#uuid
 ```
@@ -23,9 +24,35 @@ Build locally with Nix:
 ```bash
 nix build 'path:.#default'
 nix build 'path:.#gob'
+nix build 'path:.#pub'
 nix build 'path:.#tick'
 nix build 'path:.#uuid'
 ```
+
+## pub
+
+`pub` prints the public SSH keys for a GitHub user by fetching `https://github.com/<user>.keys`.
+
+### Build
+
+```bash
+go build -o pub ./cmd/pub
+```
+
+### Usage
+
+```bash
+./pub
+./pub octocat
+./pub -timeout 5s octocat
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `-timeout duration` | HTTP timeout (default `10s`) |
+| `-h`, `-help`, `--help` | Print usage and examples |
 
 ## tick
 
@@ -44,10 +71,10 @@ go build -o tick ./cmd/tick
 ```bash
 ./tick
 ./tick +24h
-./tick --nano -1h
-./tick --epoch
-./tick --format '2006-01-02 15:04:05 MST'
-./tick --json
+./tick -nano -1h
+./tick -epoch
+./tick -format '2006-01-02 15:04:05 MST'
+./tick -json
 TZ=America/New_York ./tick
 ```
 
@@ -55,12 +82,12 @@ TZ=America/New_York ./tick
 
 | Flag | Description |
 |------|-------------|
-| `--nano` | Print in RFC3339Nano format |
-| `--epoch` | Print Unix epoch seconds |
-| `--format <layout>` | Print using a Go time layout string |
-| `--json` | Print common `time` package layouts as JSON |
+| `-nano` | Print in RFC3339Nano format |
+| `-epoch` | Print Unix epoch seconds |
+| `-format string` | Print using a Go time layout string |
+| `-json` | Print common `time` package layouts as JSON |
 
-`--nano`, `--epoch`, `--format`, and `--json` are mutually exclusive.
+`-nano`, `-epoch`, `-format`, and `-json` are mutually exclusive.
 
 `tick` accepts one optional positional duration offset, such as `+24h`, `-90m`, or `+30s`. The offset may appear before or after flags.
 
@@ -95,14 +122,14 @@ go build -o gob ./cmd/gob
 **Start the server:**
 
 ```bash
-./gob server --listen :9000
+./gob server -listen :9000
 ```
 
 **Send a message:**
 
 ```bash
-./gob client --addr localhost:9000 --type ping --body "hello world"
-./gob client --addr localhost:9000 --type chat --body "hey server" --id abc123
+./gob client -addr localhost:9000 -type ping -body "hello world"
+./gob client -addr localhost:9000 -type chat -body "hey server" -id abc123
 ```
 
 **Expected output:**

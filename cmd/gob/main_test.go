@@ -13,9 +13,14 @@ import (
 )
 
 func TestRunUnknownCommand(t *testing.T) {
-	err := run([]string{"nope"})
+	_, stderr, err := captureOutput(t, func() error {
+		return run([]string{"nope"})
+	})
 	if !errors.Is(err, errUsage) {
 		t.Fatalf("run() error = %v, want errUsage", err)
+	}
+	if !strings.Contains(stderr, `gob: unknown command "nope"`) {
+		t.Fatalf("run() stderr = %q", stderr)
 	}
 }
 
@@ -24,45 +29,89 @@ func TestRunClientRoundTrip(t *testing.T) {
 	defer ts.Close()
 
 	addr := strings.TrimPrefix(ts.URL, "http://")
-	output := captureStdout(t, func() {
-		err := runClient([]string{"-addr", addr, "-id", "42", "-type", "ping", "-body", "hello", "-timeout", (50 * time.Millisecond).String()})
-		if err != nil {
-			t.Fatalf("runClient() unexpected error: %v", err)
-		}
+	stdout, _, err := captureOutput(t, func() error {
+		return runClient([]string{"-addr", addr, "-id", "42", "-type", "ping", "-body", "hello", "-timeout", (50 * time.Millisecond).String()})
 	})
-
-	if !strings.Contains(output, `sent    id=42 type=ping body="hello"`) {
-		t.Fatalf("runClient() output = %q", output)
+	if err != nil {
+		t.Fatalf("runClient() unexpected error: %v", err)
 	}
-	if !strings.Contains(output, `replied id=42 type=ping body="hello"`) {
-		t.Fatalf("runClient() output = %q", output)
+
+	if !strings.Contains(stdout, `sent    id=42 type=ping body="hello"`) {
+		t.Fatalf("runClient() output = %q", stdout)
+	}
+	if !strings.Contains(stdout, `replied id=42 type=ping body="hello"`) {
+		t.Fatalf("runClient() output = %q", stdout)
 	}
 }
 
-func captureStdout(t *testing.T, fn func()) string {
+func TestRunHelpPrintsUsageToStdout(t *testing.T) {
+	stdout, stderr, err := captureOutput(t, func() error {
+		return run([]string{"-h"})
+	})
+	if err != nil {
+		t.Fatalf("run() unexpected error: %v", err)
+	}
+	if stderr != "" {
+		t.Fatalf("run() stderr = %q, want empty", stderr)
+	}
+	if !strings.Contains(stdout, "Commands:") {
+		t.Fatalf("run() stdout = %q", stdout)
+	}
+	if !strings.Contains(stdout, "Run 'gob <command> -h'") {
+		t.Fatalf("run() stdout = %q", stdout)
+	}
+}
+
+func TestRunClientHelpPrintsSubcommandUsage(t *testing.T) {
+	_, stderr, err := captureOutput(t, func() error {
+		return runClient([]string{"-h"})
+	})
+	if err != nil {
+		t.Fatalf("runClient() unexpected error: %v", err)
+	}
+	if !strings.Contains(stderr, "gob client - send a gob message to the server") {
+		t.Fatalf("runClient() stderr = %q", stderr)
+	}
+}
+
+func captureOutput(t *testing.T, fn func() error) (string, string, error) {
 	t.Helper()
 
-	original := os.Stdout
-	r, w, err := os.Pipe()
+	stdoutR, stdoutW, err := os.Pipe()
 	if err != nil {
-		t.Fatalf("os.Pipe() error: %v", err)
+		t.Fatalf("os.Pipe() stdout error: %v", err)
+	}
+	stderrR, stderrW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() stderr error: %v", err)
 	}
 
-	os.Stdout = w
+	originalStdout := os.Stdout
+	originalStderr := os.Stderr
+	os.Stdout = stdoutW
+	os.Stderr = stderrW
 	defer func() {
-		os.Stdout = original
+		os.Stdout = originalStdout
+		os.Stderr = originalStderr
 	}()
 
-	fn()
+	runErr := fn()
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("Close() error: %v", err)
+	if err := stdoutW.Close(); err != nil {
+		t.Fatalf("stdout Close() error: %v", err)
+	}
+	if err := stderrW.Close(); err != nil {
+		t.Fatalf("stderr Close() error: %v", err)
 	}
 
-	b, err := io.ReadAll(r)
+	stdoutBytes, err := io.ReadAll(stdoutR)
 	if err != nil {
-		t.Fatalf("io.ReadAll() error: %v", err)
+		t.Fatalf("io.ReadAll(stdout) error: %v", err)
+	}
+	stderrBytes, err := io.ReadAll(stderrR)
+	if err != nil {
+		t.Fatalf("io.ReadAll(stderr) error: %v", err)
 	}
 
-	return string(b)
+	return string(stdoutBytes), string(stderrBytes), runErr
 }

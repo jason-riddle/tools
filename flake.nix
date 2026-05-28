@@ -32,6 +32,7 @@
       # Individual tools and a combined default that installs all tools.
       #
       #   nix build .#gob      — build the gob binary
+      #   nix build .#pub      — build the pub binary
       #   nix build .#tick     — build the tick binary
       #   nix build .#uuid     — build the uuid binary
       #   nix build            — build all tools (default)
@@ -55,17 +56,18 @@
             };
 
           gob  = mkTool "gob";
+          pub  = mkTool "pub";
           tick = mkTool "tick";
           uuid = mkTool "uuid";
         in {
-          inherit gob tick uuid;
+          inherit gob pub tick uuid;
 
           # Combined package: symlinks all binaries into a single store path.
           # This is what `nix profile add github:jason-riddle/tools` installs.
           default = pkgs.symlinkJoin {
             name  = "tools"; # stable name; version is already encoded in the store hash
-            paths = [ gob tick uuid ];
-            meta.description = "Go CLI tools: gob, tick, and uuid";
+            paths = [ gob pub tick uuid ];
+            meta.description = "Go CLI tools: gob, pub, tick, and uuid";
           };
         }
       );

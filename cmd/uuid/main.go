@@ -4,8 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/jason-riddle/tools/internal/uuid"
 )
@@ -20,14 +22,11 @@ Commands:
   parse     Parse a UUID string and print details
   version   Print the version number of a UUID string
 
-New flags:
-  -v int   UUID version to generate: 4 or 7 (default 4)
+Run 'uuid <command> -h' for command-specific help.
 
-Parse flags:
-  (none)   uuid parse <uuid-string>
-
-Version flags:
-  (none)   uuid version <uuid-string>
+Global help:
+  -h, -help, --help
+        Show help
 
 Examples:
   uuid new
@@ -64,7 +63,7 @@ func run(args []string) error {
 		return runParse(args[1:])
 	case "version":
 		return runVersion(args[1:])
-	case "-h", "--help", "help":
+	case "-h", "-help", "--help", "help":
 		fmt.Fprint(os.Stdout, usage)
 		return nil
 	default:
@@ -77,15 +76,35 @@ func run(args []string) error {
 // runNew generates a new UUID of the requested version.
 func runNew(args []string) error {
 	fs := flag.NewFlagSet("new", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
 	ver := fs.Int("v", 4, "UUID version to generate: 4 or 7")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: uuid new [flags]")
-		fs.PrintDefaults()
+		fmt.Fprint(os.Stderr, `uuid new - generate a new UUID
+
+Usage:
+  uuid new [flags]
+
+Flags:
+  -v int
+        UUID version to generate: 4 or 7 (default 4)
+
+Examples:
+  uuid new
+  uuid new -v 7
+`)
 	}
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
+			fs.Usage()
 			return nil
 		}
+		fmt.Fprintf(os.Stderr, "uuid new: %v\n\n", err)
+		fs.Usage()
+		return errUsage
+	}
+	if fs.NArg() != 0 {
+		fmt.Fprintf(os.Stderr, "uuid new: unexpected arguments: %s\n\n", strings.Join(fs.Args(), " "))
+		fs.Usage()
 		return errUsage
 	}
 
@@ -106,19 +125,34 @@ func runNew(args []string) error {
 // runParse parses a UUID string and prints structured details.
 func runParse(args []string) error {
 	fs := flag.NewFlagSet("parse", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: uuid parse <uuid-string>")
-		fs.PrintDefaults()
+		fmt.Fprint(os.Stderr, `uuid parse - parse a UUID string and print details
+
+Usage:
+  uuid parse <uuid-string>
+
+Arguments:
+  uuid-string  UUID to parse
+
+Examples:
+  uuid parse f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+`)
 	}
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
+			fs.Usage()
 			return nil
 		}
+		fmt.Fprintf(os.Stderr, "uuid parse: %v\n\n", err)
+		fs.Usage()
 		return errUsage
 	}
 
 	if fs.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "Usage: uuid parse <uuid-string>")
+		fmt.Fprintln(os.Stderr, "uuid parse: expected exactly one uuid-string argument")
+		fmt.Fprintln(os.Stderr)
+		fs.Usage()
 		return errUsage
 	}
 
@@ -139,19 +173,34 @@ func runParse(args []string) error {
 // runVersion prints only the version number of a UUID string.
 func runVersion(args []string) error {
 	fs := flag.NewFlagSet("version", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: uuid version <uuid-string>")
-		fs.PrintDefaults()
+		fmt.Fprint(os.Stderr, `uuid version - print the version number of a UUID string
+
+Usage:
+  uuid version <uuid-string>
+
+Arguments:
+  uuid-string  UUID to inspect
+
+Examples:
+  uuid version f81d4fae-7dec-11d0-a765-00a0c91e6bf6
+`)
 	}
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
+			fs.Usage()
 			return nil
 		}
+		fmt.Fprintf(os.Stderr, "uuid version: %v\n\n", err)
+		fs.Usage()
 		return errUsage
 	}
 
 	if fs.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "Usage: uuid version <uuid-string>")
+		fmt.Fprintln(os.Stderr, "uuid version: expected exactly one uuid-string argument")
+		fmt.Fprintln(os.Stderr)
+		fs.Usage()
 		return errUsage
 	}
 

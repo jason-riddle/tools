@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"strings"
@@ -10,13 +11,14 @@ import (
 )
 
 func TestRunNewPrintsValidUUID(t *testing.T) {
-	output := captureStdout(t, func() {
-		if err := runNew([]string{"-v", "4"}); err != nil {
-			t.Fatalf("runNew() unexpected error: %v", err)
-		}
+	stdout, _, err := captureOutput(t, func() error {
+		return runNew([]string{"-v", "4"})
 	})
+	if err != nil {
+		t.Fatalf("runNew() unexpected error: %v", err)
+	}
 
-	value := strings.TrimSpace(output)
+	value := strings.TrimSpace(stdout)
 	parsed, err := uuidpkg.Parse(value)
 	if err != nil {
 		t.Fatalf("Parse(%q) unexpected error: %v", value, err)
@@ -27,41 +29,89 @@ func TestRunNewPrintsValidUUID(t *testing.T) {
 }
 
 func TestRunVersionPrintsUUIDVersion(t *testing.T) {
-	output := captureStdout(t, func() {
-		if err := runVersion([]string{"f81d4fae-7dec-11d0-a765-00a0c91e6bf6"}); err != nil {
-			t.Fatalf("runVersion() unexpected error: %v", err)
-		}
+	stdout, _, err := captureOutput(t, func() error {
+		return runVersion([]string{"f81d4fae-7dec-11d0-a765-00a0c91e6bf6"})
 	})
+	if err != nil {
+		t.Fatalf("runVersion() unexpected error: %v", err)
+	}
 
-	if got := strings.TrimSpace(output); got != "1" {
+	if got := strings.TrimSpace(stdout); got != "1" {
 		t.Fatalf("runVersion() output = %q, want %q", got, "1")
 	}
 }
 
-func captureStdout(t *testing.T, fn func()) string {
+func TestRunHelpPrintsUsageToStdout(t *testing.T) {
+	stdout, stderr, err := captureOutput(t, func() error {
+		return run([]string{"-h"})
+	})
+	if err != nil {
+		t.Fatalf("run() unexpected error: %v", err)
+	}
+	if stderr != "" {
+		t.Fatalf("run() stderr = %q, want empty", stderr)
+	}
+	if !strings.Contains(stdout, "Commands:") {
+		t.Fatalf("run() stdout = %q", stdout)
+	}
+	if !strings.Contains(stdout, "Run 'uuid <command> -h'") {
+		t.Fatalf("run() stdout = %q", stdout)
+	}
+}
+
+func TestRunParseUsageErrorIncludesMessageAndUsage(t *testing.T) {
+	_, stderr, err := captureOutput(t, func() error {
+		return runParse(nil)
+	})
+	if !errors.Is(err, errUsage) {
+		t.Fatalf("runParse() error = %v, want errUsage", err)
+	}
+	if !strings.Contains(stderr, "uuid parse: expected exactly one uuid-string argument") {
+		t.Fatalf("runParse() stderr = %q", stderr)
+	}
+	if !strings.Contains(stderr, "Usage:") {
+		t.Fatalf("runParse() stderr = %q", stderr)
+	}
+}
+
+func captureOutput(t *testing.T, fn func() error) (string, string, error) {
 	t.Helper()
 
-	original := os.Stdout
-	r, w, err := os.Pipe()
+	stdoutR, stdoutW, err := os.Pipe()
 	if err != nil {
-		t.Fatalf("os.Pipe() error: %v", err)
+		t.Fatalf("os.Pipe() stdout error: %v", err)
+	}
+	stderrR, stderrW, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe() stderr error: %v", err)
 	}
 
-	os.Stdout = w
+	originalStdout := os.Stdout
+	originalStderr := os.Stderr
+	os.Stdout = stdoutW
+	os.Stderr = stderrW
 	defer func() {
-		os.Stdout = original
+		os.Stdout = originalStdout
+		os.Stderr = originalStderr
 	}()
 
-	fn()
+	runErr := fn()
 
-	if err := w.Close(); err != nil {
-		t.Fatalf("Close() error: %v", err)
+	if err := stdoutW.Close(); err != nil {
+		t.Fatalf("stdout Close() error: %v", err)
+	}
+	if err := stderrW.Close(); err != nil {
+		t.Fatalf("stderr Close() error: %v", err)
 	}
 
-	b, err := io.ReadAll(r)
+	stdoutBytes, err := io.ReadAll(stdoutR)
 	if err != nil {
-		t.Fatalf("io.ReadAll() error: %v", err)
+		t.Fatalf("io.ReadAll(stdout) error: %v", err)
+	}
+	stderrBytes, err := io.ReadAll(stderrR)
+	if err != nil {
+		t.Fatalf("io.ReadAll(stderr) error: %v", err)
 	}
 
-	return string(b)
+	return string(stdoutBytes), string(stderrBytes), runErr
 }
