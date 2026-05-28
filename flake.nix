@@ -33,6 +33,7 @@
       #
       #   nix build .#gob      — build the gob binary
       #   nix build .#json     — build the json binary
+      #   nix build .#nas      — build the nas binary
       #   nix build .#pub      — build the pub binary
       #   nix build .#tick     — build the tick binary
       #   nix build .#uuid     — build the uuid binary
@@ -40,6 +41,7 @@
       #   nix profile add github:jason-riddle/tools        — install all tools
       #   nix profile add github:jason-riddle/tools#gob    — install gob only
       #   nix profile add github:jason-riddle/tools#json   — install json only
+      #   nix profile add github:jason-riddle/tools#nas    — install nas only
       packages = forAllSystems (pkgs:
         let
           # Build a single CLI tool from cmd/<name>/main.go.
@@ -59,18 +61,19 @@
 
           gob  = mkTool "gob";
           json = mkTool "json";
+          nas  = mkTool "nas";
           pub  = mkTool "pub";
           tick = mkTool "tick";
           uuid = mkTool "uuid";
         in {
-          inherit gob json pub tick uuid;
+          inherit gob json nas pub tick uuid;
 
           # Combined package: symlinks all binaries into a single store path.
           # This is what `nix profile add github:jason-riddle/tools` installs.
           default = pkgs.symlinkJoin {
             name  = "tools"; # stable name; version is already encoded in the store hash
-            paths = [ gob json pub tick uuid ];
-            meta.description = "Go CLI tools: gob, json, pub, tick, and uuid";
+            paths = [ gob json nas pub tick uuid ];
+            meta.description = "Go CLI tools: gob, json, nas, pub, tick, and uuid";
           };
         }
       );

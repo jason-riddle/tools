@@ -1,6 +1,6 @@
 # tools
 
-A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
+A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `nas`, a Synology DSM CLI, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
 
 ## Install with Nix
 
@@ -15,6 +15,7 @@ Install a specific tool:
 ```bash
 nix profile add github:jason-riddle/tools#gob
 nix profile add github:jason-riddle/tools#json
+nix profile add github:jason-riddle/tools#nas
 nix profile add github:jason-riddle/tools#pub
 nix profile add github:jason-riddle/tools#tick
 nix profile add github:jason-riddle/tools#uuid
@@ -26,9 +27,64 @@ Build locally with Nix:
 nix build 'path:.#default'
 nix build 'path:.#gob'
 nix build 'path:.#json'
+nix build 'path:.#nas'
 nix build 'path:.#pub'
 nix build 'path:.#tick'
 nix build 'path:.#uuid'
+```
+
+## nas
+
+`nas` interacts with a Synology NAS through the DSM Web API.
+
+It reads connection details from the environment:
+
+```bash
+export NAS_HOST=nas
+export NAS_USER=jason
+export NAS_PASSWORD=secret
+```
+
+### Build
+
+```bash
+go build -o nas ./cmd/nas
+```
+
+### Usage
+
+```bash
+./nas status
+./nas status -timeout 5s
+./nas reboot
+./nas reboot -confirm
+```
+
+### Flags
+
+**status subcommand:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-timeout` | `10s` | Per-request HTTP timeout |
+| `-insecure` | `true` | Skip TLS certificate verification |
+
+**reboot subcommand:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-confirm` | `false` | Skip confirmation prompt |
+| `-timeout` | `10s` | Per-request HTTP timeout |
+| `-insecure` | `true` | Skip TLS certificate verification |
+
+Example status output:
+
+```text
+Model:   DS220+
+DSM:     DSM 7.3.2-86009 Update 3
+Uptime:  14d 3h 22m
+CPU:     user=4% sys=2%
+Memory:  used=2048 MB / total=4096 MB
 ```
 
 ## json
