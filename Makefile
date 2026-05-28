@@ -20,6 +20,7 @@ nix-build:
 
 nix-build-all:
 	nix build 'path:.#gob'
+	nix build 'path:.#json'
 	nix build 'path:.#uuid'
 
 nix-check: build-all vet test nix-build-all

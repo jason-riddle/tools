@@ -1,6 +1,6 @@
 # tools
 
-A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
+A collection of Go tools. Currently contains `gob`, a gob message transport tool over HTTP, `json`, a stable JSON formatter, `pub`, a GitHub public SSH key CLI, `tick`, a time CLI, and `uuid`, a UUID CLI.
 
 ## Install with Nix
 
@@ -14,6 +14,7 @@ Install a specific tool:
 
 ```bash
 nix profile add github:jason-riddle/tools#gob
+nix profile add github:jason-riddle/tools#json
 nix profile add github:jason-riddle/tools#pub
 nix profile add github:jason-riddle/tools#tick
 nix profile add github:jason-riddle/tools#uuid
@@ -24,10 +25,40 @@ Build locally with Nix:
 ```bash
 nix build 'path:.#default'
 nix build 'path:.#gob'
+nix build 'path:.#json'
 nix build 'path:.#pub'
 nix build 'path:.#tick'
 nix build 'path:.#uuid'
 ```
+
+## json
+
+`json` pretty-prints JSON with recursively sorted object keys.
+
+By default it preserves array order. Use `--sort-arrays` to sort arrays of scalar values recursively; arrays containing objects or nested arrays keep their original order.
+
+### Build
+
+```bash
+go build -o json ./cmd/json
+```
+
+### Usage
+
+```bash
+./json < file.json
+./json file.json
+./json --compact file.json
+./json --sort-arrays file.json
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `--sort-arrays` | Sort arrays of scalar values recursively |
+| `--compact` | Emit compact JSON instead of pretty-printed output |
+| `-h`, `-help`, `--help` | Print usage and examples |
 
 ## pub
 
